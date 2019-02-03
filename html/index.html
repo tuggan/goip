@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{{ .Title }}</title>
+    <style>
+            table, th, td {
+                border: 1px solid black;
+                border-collapse: collapse;
+                padding: .3rem;
+            }
+            </style>
+</head>
+
+<body>
+    <table>
+        {{range $key, $val := .Clientinfo}}
+        <tr>
+            <td>
+                <a href="{{$key}}">{{$key}}</a>
+            </td>
+            <td>
+                {{$val}}
+            </td>
+        </tr>
+        {{end}}
+    </table>
+</body>
+
+</html>
