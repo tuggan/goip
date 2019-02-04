@@ -1,12 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -24,18 +26,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	ip, port, e := net.SplitHostPort(r.RemoteAddr)
 	if e != nil {
 		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
+		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path[1:])
 		return
 	}
 
 	// Placed here for *a bit* better performance
 	if r.URL.Path == "/Ip" {
-		ip, _, e := net.SplitHostPort(r.RemoteAddr)
-		if e == nil {
-			io.WriteString(w, ip)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			renderError(w, "Error while parsing ip", http.StatusInternalServerError)
-		}
+		io.WriteString(w, ip)
+		log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
 		return
 	}
 
@@ -50,7 +48,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	for key, val := range r.Header {
 		if _, ok := info[key]; ok {
-			log.Printf("Duplicate keys! %s", key)
+			log.Printf("[Error] [-] duplicate keys! %s", key)
 		} else {
 			info[key] = strings.Join(val, "\n")
 		}
@@ -58,7 +56,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	for key, val := range r.Trailer {
 		if _, ok := info[key]; ok {
-			log.Printf("Duplicate keys! %s", key)
+			log.Printf("[Error] [-] duplicate keys! %s", key)
 		} else {
 			info[key] = strings.Join(val, "\n")
 		}
@@ -70,10 +68,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			Clientinfo: info,
 		}
 		renderTemplate(w, "html/index", data)
+		log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
 	} else if c, ok := info[r.URL.Path[1:]]; ok {
 		io.WriteString(w, c)
+		log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
 	} else {
 		renderError(w, fmt.Sprintf("Could not find %s", r.URL.Path[1:]), http.StatusNotFound)
+		log.Printf("[Error] [%d] could not find %s", http.StatusNotFound, r.URL.Path[1:])
 	}
 }
 
@@ -95,6 +96,26 @@ func renderError(w http.ResponseWriter, s string, code int) {
 }
 
 func main() {
+
+	bindAddr := flag.String("bind-address", "127.0.0.1", "Address to bind the server to")
+	bindPort := flag.String("port", "3000", "port to listen on")
+
+	flag.Parse()
+
+	addr := *bindAddr + ":" + *bindPort
+
+	f, err := os.OpenFile("access.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.FileMode(0666))
+	if err != nil {
+		log.Fatal("Coulnd not open file", err.Error())
+	}
+
+	log.SetOutput(f)
+
+	log.Printf("Starting %s", os.Args[0])
+	if 0 < len(os.Args[1:]) {
+		log.Printf("Arguments: %s", os.Args[1:])
+	}
+	log.Printf("Listening on %s", addr)
 	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
