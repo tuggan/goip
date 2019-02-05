@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"goip/src"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -12,7 +13,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"goip/src"
 )
 
 type page struct {
@@ -28,14 +28,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	ip, port, e := net.SplitHostPort(r.RemoteAddr)
 	if e != nil {
 		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
-		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path[1:])
+		logger.Error("[%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path)
 		return
 	}
 
 	// Placed here for *a bit* better performance
 	if r.URL.Path == "/Ip" {
 		io.WriteString(w, ip)
-		log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
+		logger.Access(r, http.StatusOK)
 		return
 	}
 
@@ -50,7 +50,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	for key, val := range r.Header {
 		if _, ok := info[key]; ok {
-			log.Printf("[Error] [-] duplicate keys! %s", key)
+			logger.Error("[Error] [-] duplicate keys! %s", key)
 		} else {
 			info[key] = strings.Join(val, "\n")
 		}
@@ -58,7 +58,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	for key, val := range r.Trailer {
 		if _, ok := info[key]; ok {
-			log.Printf("[Error] [-] duplicate keys! %s", key)
+			logger.Error("[Error] [-] duplicate keys! %s", key)
 		} else {
 			info[key] = strings.Join(val, "\n")
 		}
@@ -70,13 +70,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			Clientinfo: info,
 		}
 		renderTemplate(w, "html/index", data)
-		log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
+		logger.Access(r, http.StatusOK)
 	} else if c, ok := info[r.URL.Path[1:]]; ok {
 		io.WriteString(w, c)
-		log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
+		logger.Access(r, http.StatusOK)
 	} else {
-		renderError(w, fmt.Sprintf("Could not find %s", r.URL.Path[1:]), http.StatusNotFound)
-		log.Printf("[Error] [%d] could not find %s", http.StatusNotFound, r.URL.Path[1:])
+		renderError(w, fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
+		logger.Access(r, http.StatusNotFound)
 	}
 }
 
@@ -99,40 +99,27 @@ func renderError(w http.ResponseWriter, s string, code int) {
 
 func handleGET(w http.ResponseWriter, r *http.Request) {
 
-	ip, _, e := net.SplitHostPort(r.RemoteAddr)
-	if e != nil {
-		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
-		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path)
-		return
-	}
-
-	if (r.Method != "GET") {
+	if r.Method != "GET" {
 		renderError(w, "method not GET", http.StatusBadRequest)
-		log.Printf("[Error] [%d] method not GET %s", http.StatusBadRequest, r.URL.Path)
+		logger.Error("[Error] [%d] method not GET %s", http.StatusBadRequest, r.URL.Path)
 		return
 	}
 
 	io.WriteString(w, r.URL.RawQuery)
-	log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path)
-	
+	logger.Access(r, http.StatusOK)
+
 }
 
 func handlePOST(w http.ResponseWriter, r *http.Request) {
-	ip, _, e := net.SplitHostPort(r.RemoteAddr)
-	if e != nil {
-		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
-		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path)
-		return
-	}
 
-	if (r.Method != "POST") {
+	if r.Method != "POST" {
 		renderError(w, "method not POST", http.StatusBadRequest)
-		log.Printf("[Error] [%d] method not POST %s", http.StatusBadRequest, r.URL.Path)
+		logger.Error("[Error] [%d] method not POST %s", http.StatusBadRequest, r.URL.Path)
 		return
 	}
 
 	io.Copy(w, r.Body)
-	log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path)
+	logger.Access(r, http.StatusOK)
 }
 
 func main() {
@@ -144,20 +131,13 @@ func main() {
 
 	addr := *bindAddr + ":" + *bindPort
 
-	//f, err := os.OpenFile("access.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.FileMode(0666))
-	//if err != nil {
-	//	log.Fatal("Coulnd not open file", err.Error())
-	//}
-
-	//log.SetOutput(f)
-
 	logger.Init(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
 
 	logger.Info("Starting %s", os.Args[0])
 	if 0 < len(os.Args[1:]) {
 		logger.Info("Arguments: %s", os.Args[1:])
 	}
-	log.Printf("Listening on %s", addr)
+	logger.Info("Listening on %s", addr)
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/GET", handleGET)
 	http.HandleFunc("/POST", handlePOST)
