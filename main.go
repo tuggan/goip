@@ -122,6 +122,16 @@ func handlePOST(w http.ResponseWriter, r *http.Request) {
 	logger.Access(r, http.StatusOK)
 }
 
+func handleFavicon(w http.ResponseWriter, r *http.Request) {
+	file, err := os.Open("html/favicon.ico")
+	if err != nil {
+		renderError(w, fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
+		logger.Access(r, http.StatusNotFound)
+	}
+	io.Copy(w, file)
+	logger.Access(r, http.StatusOK)
+}
+
 func main() {
 
 	bindAddr := flag.String("bind-address", "127.0.0.1", "Address to bind the server to")
@@ -141,5 +151,6 @@ func main() {
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/GET", handleGET)
 	http.HandleFunc("/POST", handlePOST)
+	http.HandleFunc("/favicon.ico", handleFavicon)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
