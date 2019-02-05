@@ -95,6 +95,39 @@ func renderError(w http.ResponseWriter, s string, code int) {
 	t.Execute(w, p)
 }
 
+func handleGET(w http.ResponseWriter, r *http.Request) {
+	ip, _, e := net.SplitHostPort(r.RemoteAddr)
+	if e != nil {
+		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
+		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path[1:])
+		return
+	}
+	r.ParseForm()
+	first := true
+	for key, val := range r.Form {
+		if (!first) {
+			io.WriteString(w, "&")
+		} else {
+			first = false
+		}
+		io.WriteString(w, key)
+		io.WriteString(w, "=")
+		io.WriteString(w, strings.Join(val, ","))
+	}
+	log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
+}
+
+func handlePOST(w http.ResponseWriter, r *http.Request) {
+	ip, _, e := net.SplitHostPort(r.RemoteAddr)
+	if e != nil {
+		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
+		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path[1:])
+		return
+	}
+	io.Copy(w, r.Body)
+	log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
+}
+
 func main() {
 
 	bindAddr := flag.String("bind-address", "127.0.0.1", "Address to bind the server to")
@@ -104,12 +137,12 @@ func main() {
 
 	addr := *bindAddr + ":" + *bindPort
 
-	f, err := os.OpenFile("access.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.FileMode(0666))
-	if err != nil {
-		log.Fatal("Coulnd not open file", err.Error())
-	}
+	//f, err := os.OpenFile("access.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.FileMode(0666))
+	//if err != nil {
+	//	log.Fatal("Coulnd not open file", err.Error())
+	//}
 
-	log.SetOutput(f)
+	//log.SetOutput(f)
 
 	log.Printf("Starting %s", os.Args[0])
 	if 0 < len(os.Args[1:]) {
@@ -117,5 +150,7 @@ func main() {
 	}
 	log.Printf("Listening on %s", addr)
 	http.HandleFunc("/", handler)
+	http.HandleFunc("/GET", handleGET)
+	http.HandleFunc("/POST", handlePOST)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
