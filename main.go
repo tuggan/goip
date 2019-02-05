@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"goip/src"
 )
 
 type page struct {
@@ -149,9 +151,11 @@ func main() {
 
 	//log.SetOutput(f)
 
-	log.Printf("Starting %s", os.Args[0])
+	logger.Init(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
+
+	logger.Info("Starting %s", os.Args[0])
 	if 0 < len(os.Args[1:]) {
-		log.Printf("Arguments: %s", os.Args[1:])
+		logger.Info("Arguments: %s", os.Args[1:])
 	}
 	log.Printf("Listening on %s", addr)
 	http.HandleFunc("/", handler)
