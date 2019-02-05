@@ -96,36 +96,41 @@ func renderError(w http.ResponseWriter, s string, code int) {
 }
 
 func handleGET(w http.ResponseWriter, r *http.Request) {
+
 	ip, _, e := net.SplitHostPort(r.RemoteAddr)
 	if e != nil {
 		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
-		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path[1:])
+		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path)
 		return
 	}
-	r.ParseForm()
-	first := true
-	for key, val := range r.Form {
-		if (!first) {
-			io.WriteString(w, "&")
-		} else {
-			first = false
-		}
-		io.WriteString(w, key)
-		io.WriteString(w, "=")
-		io.WriteString(w, strings.Join(val, ","))
+
+	if (r.Method != "GET") {
+		renderError(w, "method not GET", http.StatusBadRequest)
+		log.Printf("[Error] [%d] method not GET %s", http.StatusBadRequest, r.URL.Path)
+		return
 	}
-	log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
+
+	io.WriteString(w, r.URL.RawQuery)
+	log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path)
+	
 }
 
 func handlePOST(w http.ResponseWriter, r *http.Request) {
 	ip, _, e := net.SplitHostPort(r.RemoteAddr)
 	if e != nil {
 		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
-		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path[1:])
+		log.Printf("[Error] [%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path)
 		return
 	}
+
+	if (r.Method != "POST") {
+		renderError(w, "method not POST", http.StatusBadRequest)
+		log.Printf("[Error] [%d] method not POST %s", http.StatusBadRequest, r.URL.Path)
+		return
+	}
+
 	io.Copy(w, r.Body)
-	log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path[1:])
+	log.Printf("[Info] [%d] %s: %s", http.StatusOK, ip, r.URL.Path)
 }
 
 func main() {
