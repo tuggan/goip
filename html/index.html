@@ -8,22 +8,32 @@
                 border: 1px solid black;
                 border-collapse: collapse;
                 padding: .3rem;
+                margin: auto;
             }
-            </style>
+            th,tr:nth-child(even) {
+                background: #CCC;
+            }
+    </style>
 </head>
 
 <body>
     <table>
-        {{range $key, $val := .Clientinfo}}
-        <tr>
-            <td>
-                <a href="{{$key}}">{{$key}}</a>
-            </td>
-            <td>
-                {{$val}}
-            </td>
-        </tr>
-        {{end}}
+        <thead>
+            <th>Head</th>
+            <th>Value</th>
+        </thead>
+        <tbody>
+            {{range $key, $val := .Clientinfo}}
+            <tr>
+                <td>
+                    <a href="{{$key}}">{{$key}}</a>
+                </td>
+                <td>
+                    {{$val}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
     </table>
 </body>
 
