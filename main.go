@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"goip/src"
+	"github.com/tuggan/goip/src"
 	"html/template"
 	"io"
 	"io/ioutil"
