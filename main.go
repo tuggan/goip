@@ -2,20 +2,17 @@ package main
 
 import (
 	"fmt"
-	"html/template"
-	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	"github.com/tuggan/goip/logger"
+	"github.com/tuggan/goip/web"
 )
 
 var (
@@ -23,123 +20,6 @@ var (
 	date    string
 	branch  string
 )
-
-type page struct {
-	Title      string
-	Clientinfo map[string]string
-	Header     string
-	Message    string
-	Code       string
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-
-	ip, port, e := net.SplitHostPort(r.RemoteAddr)
-	if e != nil {
-		renderError(w, "Error while parsing host and port", http.StatusInternalServerError)
-		logger.Error("[%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path)
-		return
-	}
-
-	// Placed here for *a bit* better performance
-	if r.URL.Path == "/Ip" {
-		io.WriteString(w, ip)
-		logger.Access(r, http.StatusOK)
-		return
-	}
-
-	info := map[string]string{
-		"Ip":             ip,
-		"Port":           port,
-		"Method":         r.Method,
-		"Host":           r.Host,
-		"Proto":          r.Proto,
-		"Content-Length": strconv.FormatInt(r.ContentLength, 10),
-	}
-
-	for key, val := range r.Header {
-		if _, ok := info[key]; ok {
-			logger.Error("[Error] [-] duplicate keys! %s", key)
-		} else {
-			info[key] = strings.Join(val, "\n")
-		}
-	}
-
-	for key, val := range r.Trailer {
-		if _, ok := info[key]; ok {
-			logger.Error("[Error] [-] duplicate keys! %s", key)
-		} else {
-			info[key] = strings.Join(val, "\n")
-		}
-	}
-
-	if r.URL.Path == "/" {
-		data := page{
-			Title:      "Index",
-			Clientinfo: info,
-		}
-		renderTemplate(w, "html/index", data)
-		logger.Access(r, http.StatusOK)
-	} else if c, ok := info[r.URL.Path[1:]]; ok {
-		io.WriteString(w, c)
-		logger.Access(r, http.StatusOK)
-	} else {
-		renderError(w, fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
-		logger.Access(r, http.StatusNotFound)
-	}
-}
-
-func renderTemplate(w http.ResponseWriter, tmpl string, m page) {
-	t, _ := template.ParseFiles(tmpl + ".html")
-	t.Execute(w, m)
-}
-
-func renderError(w http.ResponseWriter, s string, code int) {
-	p := page{
-		Title:   strconv.Itoa(code),
-		Header:  http.StatusText(code),
-		Message: s,
-		Code:    strconv.Itoa(code),
-	}
-	w.WriteHeader(code)
-	t, _ := template.ParseFiles("html/error.html")
-	t.Execute(w, p)
-}
-
-func handleGET(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != "GET" {
-		renderError(w, "method not GET", http.StatusBadRequest)
-		logger.Error("[Error] [%d] method not GET %s", http.StatusBadRequest, r.URL.Path)
-		return
-	}
-
-	io.WriteString(w, r.URL.RawQuery)
-	logger.Access(r, http.StatusOK)
-
-}
-
-func handlePOST(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != "POST" {
-		renderError(w, "method not POST", http.StatusBadRequest)
-		logger.Error("[Error] [%d] method not POST %s", http.StatusBadRequest, r.URL.Path)
-		return
-	}
-
-	io.Copy(w, r.Body)
-	logger.Access(r, http.StatusOK)
-}
-
-func handleFavicon(w http.ResponseWriter, r *http.Request) {
-	file, err := os.Open("html/favicon.ico")
-	if err != nil {
-		renderError(w, fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
-		logger.Access(r, http.StatusNotFound)
-	}
-	io.Copy(w, file)
-	logger.Access(r, http.StatusOK)
-}
 
 func printVersion() {
 	fmt.Printf("GoIP %s (%s) branch %s © Dennis Vesterlund <dennisvesterlund@gmail.com>\n", version, date, branch)
@@ -196,12 +76,19 @@ func main() {
 		logger.Info("Arguments: %s", os.Args[1:])
 	}
 
-	fmt.Println(viper.GetString("address"))
+	var t string
+	if viper.IsSet("templateDir") {
+		t = viper.GetString("templateDir")
+	} else {
+		t = "html"
+	}
+
+	h := web.NewHandler(t)
 
 	logger.Info("Listening on %s", addr)
-	http.HandleFunc("/", handler)
-	http.HandleFunc("/GET", handleGET)
-	http.HandleFunc("/POST", handlePOST)
-	http.HandleFunc("/favicon.ico", handleFavicon)
+	http.HandleFunc("/", h.MainHandler)
+	http.HandleFunc("/GET", h.GETHandler)
+	http.HandleFunc("/POST", h.POSTHandler)
+	http.HandleFunc("/favicon.ico", h.FaviconHandler)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
