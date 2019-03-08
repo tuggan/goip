@@ -14,20 +14,43 @@ import (
 	"github.com/tuggan/goip/logger"
 )
 
+type head struct {
+	Key string
+	Val string
+}
+
 type page struct {
 	Title      string
-	Clientinfo map[string]string
+	Clientinfo []head
 	Header     string
 	Message    string
 	Code       string
+	IP         string
+	Version    string
+	Branch     string
+	CommitDate string
+	Author     string
+	Email      string
 }
 
 type handler struct {
 	templateDir string
+	version     string
+	branch      string
+	date        string
+	author      string
+	email       string
 }
 
-func NewHandler(templateDir string) handler {
-	return handler{templateDir: templateDir}
+func NewHandler(templateDir, version, branch, date, author, email string) handler {
+	return handler{
+		templateDir: templateDir,
+		version:     version,
+		branch:      branch,
+		date:        date,
+		author:      author,
+		email:       email,
+	}
 }
 
 func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,51 +63,62 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Placed here for *a bit* better performance
-	if r.URL.Path == "/Ip" {
+	if r.URL.Path == "/ip" {
 		io.WriteString(w, ip)
 		logger.Access(r, http.StatusOK)
 		return
 	}
 
-	info := map[string]string{
-		"Ip":             ip,
-		"Port":           port,
-		"Method":         r.Method,
-		"Host":           r.Host,
-		"Proto":          r.Proto,
-		"Content-Length": strconv.FormatInt(r.ContentLength, 10),
-	}
+	s := strings.ToLower(r.URL.Path)
 
-	for key, val := range r.Header {
-		if _, ok := info[key]; ok {
-			logger.Error("[Error] [-] duplicate keys! %s", key)
-		} else {
-			info[key] = strings.Join(val, "\n")
+	switch s {
+	case "/ip":
+		io.WriteString(w, ip)
+	case "/port":
+		io.WriteString(w, port)
+	case "/user-agent":
+		io.WriteString(w, r.Header.Get("User-Agent"))
+	case "/method":
+		io.WriteString(w, r.Method)
+	case "/host":
+		io.WriteString(w, r.Host)
+	case "/proto":
+		io.WriteString(w, r.Proto)
+	case "/content-length":
+		io.WriteString(w, strconv.FormatInt(r.ContentLength, 10))
+	case "/accept":
+		io.WriteString(w, r.Header.Get("Accept"))
+	case "/accept-encoding":
+		io.WriteString(w, r.Header.Get("Accept-Encoding"))
+	case "/":
+		info := []head{
+			{"Ip", ip},
+			{"Port", port},
+			{"User-Agent", r.Header.Get("User-Agent")},
+			{"Method", r.Method},
+			{"Host", r.Host},
+			{"Proto", r.Proto},
+			{"Content-Length", strconv.FormatInt(r.ContentLength, 10)},
+			{"Accept", r.Header.Get("Accept")},
+			{"Accept-Encoding", r.Header.Get("Accept-Encoding")},
 		}
-	}
-
-	for key, val := range r.Trailer {
-		if _, ok := info[key]; ok {
-			logger.Error("[Error] [-] duplicate keys! %s", key)
-		} else {
-			info[key] = strings.Join(val, "\n")
-		}
-	}
-
-	if r.URL.Path == "/" {
 		data := page{
 			Title:      "Index",
 			Clientinfo: info,
+			IP:         ip,
+			Version:    h.version,
+			Branch:     h.branch,
+			CommitDate: h.date,
+			Author:     h.author,
+			Email:      h.email,
 		}
 		renderTemplate(w, path.Join(h.templateDir, "index"), data)
-		logger.Access(r, http.StatusOK)
-	} else if c, ok := info[r.URL.Path[1:]]; ok {
-		io.WriteString(w, c)
-		logger.Access(r, http.StatusOK)
-	} else {
+	default:
 		renderError(w, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
+		return
 	}
+	logger.Access(r, http.StatusOK)
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, m page) {
@@ -130,7 +164,7 @@ func (h handler) POSTHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
-	file, err := os.Open("html/favicon.ico")
+	file, err := os.Open(path.Join(h.templateDir, "/favicon.ico"))
 	if err != nil {
 		renderError(w, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)

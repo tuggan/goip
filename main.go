@@ -19,6 +19,8 @@ var (
 	version string
 	date    string
 	branch  string
+	author  string = "Dennis Vesterlund"
+	email   string = "dennisvesterlund@gmail.com"
 )
 
 func printVersion() {
@@ -36,7 +38,7 @@ func main() {
 
 	pflag.StringP("address", "a", "127.0.0.1", "Address to bind the server to")
 	pflag.Uint16P("port", "p", 3000, "port to listen on")
-	version := pflag.BoolP("version", "v", false, "Print version and exit")
+	versionFlag := pflag.BoolP("version", "v", false, "Print version and exit")
 	help := pflag.BoolP("help", "h", false, "Print help and exit")
 	configFile := pflag.StringP("config", "c", ".", "Path to config file")
 
@@ -49,10 +51,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *version {
+	if *versionFlag {
 		printVersion()
 		os.Exit(0)
 	}
+
+	logger.Init(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
 
 	viper.SetConfigName("goip")
 	viper.AddConfigPath(*configFile)
@@ -64,10 +68,6 @@ func main() {
 	if err != nil {
 		logger.Error("Error with config file: %s", err)
 	}
-
-	logger.Init(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
-
-	logger.Info("User: %s", viper.GetString("user"))
 
 	addr := viper.GetString("address") + ":" + strconv.Itoa(viper.GetInt("port"))
 
@@ -89,7 +89,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	h := web.NewHandler(t)
+	h := web.NewHandler(t, version, branch, date, author, email)
 
 	logger.Info("Listening on %s", addr)
 	http.HandleFunc("/", h.MainHandler)

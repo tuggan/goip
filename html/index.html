@@ -4,37 +4,149 @@
 <head>
     <title>{{ .Title }}</title>
     <style>
-            table, th, td {
-                border: 1px solid black;
-                border-collapse: collapse;
-                padding: .3rem;
-                margin: auto;
-            }
-            th,tr:nth-child(even) {
-                background: #CCC;
-            }
+        :root {
+            --primary-color: #03A9F4;
+            --primary-background: #FFFFFF;
+            --accent-color: #9E9E9E;
+            --divider-color: #BDBDBD;
+            --primary-text: #212121;
+            --secondary-text: #757575;
+        }
+
+        html, body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            background: var(--primary-background);
+            font-family: 'RobotoDraft', 'Roboto', 'Helvetica Neue, Helvetica, Arial', sans-serif;
+        }
+
+        #github-corner-svg {
+            fill:var(--primary-text);
+            color:var(--primary-color);
+            position: absolute;
+            top: 0;
+            border: 0;
+            right: 0;
+        }
+
+        #container {
+            min-height: 100%;
+            position: relative;
+        }
+
+        #ip {
+            background: var(--primary-color);
+            color: var(--primary-text);
+            line-height: 12rem;
+            height: 12rem;
+            text-align: center;
+            font-size: 4rem;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        #content {
+            padding-bottom: 2rem;
+            margin: 5%;
+            width: 90%;
+        }
+
+        a {
+            color: #000000;
+            text-decoration: none;
+        }
+
+        code {
+            background-color: #eee;
+            border: 1px solid #999;
+            display: block;
+            padding: 1rem;
+        }
+
+        table {
+            margin-top: 2rem;
+            border-collapse: collapse;
+            background-color: var(--primary-background);
+            padding: 1rem;
+        }
+
+        th,td {
+            text-align: left;
+            padding: 1rem;
+            border-bottom-color: var(--divider-color);
+            border-bottom-style: solid;
+            border-bottom-width: 1px;
+        }
+
+        th {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        td {
+            font-size: 1.1rem;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 0;
+            width: 90%;
+            margin-left: 5%;
+            margin-right: 5%;
+            height: 3rem;
+            line-height: 3rem;
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--secondary-text);
+            border-top-width: 1px;
+            border-top-color: var(--divider-color);
+            border-top-style: solid;
+        }
+
+        footer a {
+            color: var(--secondary-text);
+        }
     </style>
 </head>
 
 <body>
-    <table>
-        <thead>
-            <th>Head</th>
-            <th>Value</th>
-        </thead>
-        <tbody>
-            {{range $key, $val := .Clientinfo}}
-            <tr>
-                <td>
-                    <a href="{{$key}}">{{$key}}</a>
-                </td>
-                <td>
-                    {{$val}}
-                </td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
+    <div id="container">
+        <a href="https://github.com/tuggan/goip" class="github-corner" aria-label="View source on GitHub"><svg id="github-corner-svg" width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+        <header id="ip">{{.IP}}</header>
+        <div id="content">
+            <h1>What is my ip address?</h1>
+            <p>You'll find that above! And below!</p>
+            <p>All headers below are clickable for when you need only the specific information.</p>
+            <code>
+                    curl http://ipconf.se/ip<br>
+                    10.13.37.105
+            </code>
+        <table>
+            <thead>
+                <tr>
+                    <th>Header</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Clientinfo}}
+                <tr>
+                    <td>
+                        <a href="{{.Key}}">{{.Key}}</a>
+                    </td>
+                    <td>
+                        {{.Val}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    <footer>
+            GoIP {{.Version}} ({{.CommitDate}}) branch {{.Branch}} © <a href="mailto:{{.Email}}">{{.Author}}</a>
+    </footer>
+</div>
 </body>
 
 </html>
