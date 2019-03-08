@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
 	"github.com/tuggan/goip/logger"
 	"github.com/tuggan/goip/web"
 )
@@ -83,6 +83,12 @@ func main() {
 		t = "html"
 	}
 
+	s, err := net.Listen("tcp", addr)
+	if err != nil {
+		logger.Error("Error binding listening socket: %s", err)
+		os.Exit(1)
+	}
+
 	h := web.NewHandler(t)
 
 	logger.Info("Listening on %s", addr)
@@ -90,5 +96,5 @@ func main() {
 	http.HandleFunc("/GET", h.GETHandler)
 	http.HandleFunc("/POST", h.POSTHandler)
 	http.HandleFunc("/favicon.ico", h.FaviconHandler)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	log.Fatal(http.Serve(s, nil))
 }
