@@ -96,5 +96,6 @@ func main() {
 	http.HandleFunc("/GET", h.GETHandler)
 	http.HandleFunc("/POST", h.POSTHandler)
 	http.HandleFunc("/favicon.ico", h.FaviconHandler)
+	http.HandleFunc("/robots.txt", h.RobotsHandler)
 	log.Fatal(http.Serve(s, nil))
 }

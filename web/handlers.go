@@ -172,3 +172,13 @@ func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, file)
 	logger.Access(r, http.StatusOK)
 }
+
+func (h handler) RobotsHandler(w http.ResponseWriter, r *http.Request) {
+	file, err := os.Open(path.Join(h.templateDir, "/robots.txt"))
+	if err != nil {
+		renderError(w, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
+		logger.Access(r, http.StatusNotFound)
+	}
+	io.Copy(w, file)
+	logger.Access(r, http.StatusOK)
+}
