@@ -47,8 +47,9 @@
         }
 
         #content {
-            padding-bottom: 2rem;
-            margin: 5%;
+            padding-bottom: 3rem;
+            margin-left: 5%;
+            margin-right:5%;
             width: 90%;
         }
 
@@ -69,6 +70,7 @@
             border-collapse: collapse;
             background-color: var(--primary-background);
             padding: 1rem;
+            width: 100%;
         }
 
         th,td {
@@ -120,7 +122,7 @@
             <p>All headers below are clickable for when you need only the specific information.</p>
             <code>
                     curl http://ipconf.se/ip<br>
-                    10.13.37.105
+                    {{.IP}}
             </code>
         <table>
             <thead>
