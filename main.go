@@ -19,8 +19,8 @@ var (
 	version string
 	date    string
 	branch  string
-	author  string = "Dennis Vesterlund"
-	email   string = "dennisvesterlund@gmail.com"
+	author  = "Dennis Vesterlund"
+	email   = "dennisvesterlund@gmail.com"
 )
 
 func printVersion() {
@@ -76,11 +76,14 @@ func main() {
 		logger.Info("Arguments: %s", os.Args[1:])
 	}
 
-	var t string
+	var t = "html"
 	if viper.IsSet("templateDir") {
 		t = viper.GetString("templateDir")
-	} else {
-		t = "html"
+	}
+
+	var egzip = true
+	if viper.IsSet("enablegzip") {
+		egzip = viper.GetBool("enablegzip")
 	}
 
 	s, err := net.Listen("tcp", addr)
@@ -89,7 +92,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	h := web.NewHandler(t, version, branch, date, author, email)
+	h := web.NewHandler(egzip, t, version, branch, date, author, email)
 
 	logger.Info("Listening on %s", addr)
 	http.HandleFunc("/", h.MainHandler)

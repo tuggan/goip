@@ -1,6 +1,7 @@
 package web
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net"
@@ -34,22 +35,26 @@ type page struct {
 }
 
 type handler struct {
+	gzipEnabled bool
 	templateDir string
 	version     string
 	branch      string
 	date        string
 	author      string
 	email       string
+	server      string
 }
 
-func NewHandler(templateDir, version, branch, date, author, email string) handler {
+func NewHandler(gzipEnabled bool, templateDir, version, branch, date, author, email string) handler {
 	return handler{
+		gzipEnabled: gzipEnabled,
 		templateDir: templateDir,
 		version:     version,
 		branch:      branch,
 		date:        date,
 		author:      author,
 		email:       email,
+		server:      fmt.Sprintf("GoIP %s", version),
 	}
 }
 
@@ -57,17 +62,12 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	ip, port, e := net.SplitHostPort(r.RemoteAddr)
 	if e != nil {
-		renderError(w, path.Join(h.templateDir, "error"), "Error while parsing host and port", http.StatusInternalServerError)
+		h.renderError(w, r, path.Join(h.templateDir, "error"), "Error while parsing host and port", http.StatusInternalServerError)
 		logger.Error("[%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path)
 		return
 	}
 
-	// Placed here for *a bit* better performance
-	if r.URL.Path == "/ip" {
-		io.WriteString(w, ip)
-		logger.Access(r, http.StatusOK)
-		return
-	}
+	w.Header().Set("Server", h.server)
 
 	s := strings.ToLower(r.URL.Path)
 
@@ -103,7 +103,7 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 			{"Accept-Encoding", r.Header.Get("Accept-Encoding")},
 		}
 		data := page{
-			Title:      "Index",
+			Title:      "IPConf",
 			Clientinfo: info,
 			IP:         ip,
 			Version:    h.version,
@@ -112,36 +112,52 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 			Author:     h.author,
 			Email:      h.email,
 		}
-		renderTemplate(w, path.Join(h.templateDir, "index"), data)
+		h.renderTemplate(w, r, path.Join(h.templateDir, "index"), data)
 	default:
-		renderError(w, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
+		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("%s not found", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
 		return
 	}
 	logger.Access(r, http.StatusOK)
 }
 
-func renderTemplate(w http.ResponseWriter, tmpl string, m page) {
+func (h handler) renderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, m page) {
+	var tw io.Writer = w
 	t, _ := template.ParseFiles(tmpl + ".html")
-	t.Execute(w, m)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if h.gzipEnabled && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+		gw := gzip.NewWriter(w)
+		defer gw.Close()
+		tw = gw
+	}
+	t.Execute(tw, m)
 }
 
-func renderError(w http.ResponseWriter, tmpl string, s string, code int) {
+func (h handler) renderError(w http.ResponseWriter, r *http.Request, tmpl string, s string, code int) {
+	var tw io.Writer = w
 	p := page{
-		Title:   strconv.Itoa(code),
+		Title:   fmt.Sprintf("%d: %s", code, http.StatusText(code)),
 		Header:  http.StatusText(code),
 		Message: s,
 		Code:    strconv.Itoa(code),
 	}
-	w.WriteHeader(code)
 	t, _ := template.ParseFiles(tmpl + ".html")
-	t.Execute(w, p)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if h.gzipEnabled && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+		gw := gzip.NewWriter(w)
+		defer gw.Close()
+		tw = gw
+	}
+	w.WriteHeader(code)
+	t.Execute(tw, p)
 }
 
 func (h handler) GETHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
-		renderError(w, path.Join(h.templateDir, "error"), "method not GET", http.StatusBadRequest)
+		h.renderError(w, r, path.Join(h.templateDir, "error"), "method not GET", http.StatusBadRequest)
 		logger.Error("[Error] [%d] method not GET %s", http.StatusBadRequest, r.URL.Path)
 		return
 	}
@@ -154,7 +170,7 @@ func (h handler) GETHandler(w http.ResponseWriter, r *http.Request) {
 func (h handler) POSTHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
-		renderError(w, path.Join(h.templateDir, "error"), "method not POST", http.StatusBadRequest)
+		h.renderError(w, r, path.Join(h.templateDir, "error"), "method not POST", http.StatusBadRequest)
 		logger.Error("[Error] [%d] method not POST %s", http.StatusBadRequest, r.URL.Path)
 		return
 	}
@@ -166,7 +182,7 @@ func (h handler) POSTHandler(w http.ResponseWriter, r *http.Request) {
 func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Open(path.Join(h.templateDir, "/favicon.ico"))
 	if err != nil {
-		renderError(w, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
+		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
 	}
 	io.Copy(w, file)
@@ -176,7 +192,7 @@ func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
 func (h handler) RobotsHandler(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Open(path.Join(h.templateDir, "/robots.txt"))
 	if err != nil {
-		renderError(w, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
+		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
 	}
 	io.Copy(w, file)

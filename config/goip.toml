@@ -2,3 +2,6 @@
 address="0.0.0.0"
 port=3000
 templatedir="html/"
+# This option greatly saves bandwith but also impacts performance
+# Only index and error pages are effected
+enablegzip=true
