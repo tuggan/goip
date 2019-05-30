@@ -112,9 +112,9 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 			Author:     h.author,
 			Email:      h.email,
 		}
-		h.renderTemplate(w, r, path.Join(h.templateDir, "index"), data)
+		h.renderTemplate(w, r, path.Join(h.templateDir, "index.min"), data)
 	default:
-		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("%s not found", r.URL.Path), http.StatusNotFound)
+		h.renderError(w, r, path.Join(h.templateDir, "error.min"), fmt.Sprintf("%s not found", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
 		return
 	}
@@ -157,7 +157,7 @@ func (h handler) renderError(w http.ResponseWriter, r *http.Request, tmpl string
 func (h handler) GETHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
-		h.renderError(w, r, path.Join(h.templateDir, "error"), "method not GET", http.StatusBadRequest)
+		h.renderError(w, r, path.Join(h.templateDir, "error.min"), "method not GET", http.StatusBadRequest)
 		logger.Error("[Error] [%d] method not GET %s", http.StatusBadRequest, r.URL.Path)
 		return
 	}
@@ -170,7 +170,7 @@ func (h handler) GETHandler(w http.ResponseWriter, r *http.Request) {
 func (h handler) POSTHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
-		h.renderError(w, r, path.Join(h.templateDir, "error"), "method not POST", http.StatusBadRequest)
+		h.renderError(w, r, path.Join(h.templateDir, "error.min"), "method not POST", http.StatusBadRequest)
 		logger.Error("[Error] [%d] method not POST %s", http.StatusBadRequest, r.URL.Path)
 		return
 	}
@@ -192,7 +192,7 @@ func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
 func (h handler) RobotsHandler(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Open(path.Join(h.templateDir, "/robots.txt"))
 	if err != nil {
-		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
+		h.renderError(w, r, path.Join(h.templateDir, "error.min"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
 	}
 	io.Copy(w, file)
