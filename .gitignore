@@ -1,3 +1,5 @@
 goip
+# This is the local config file that will be copied over into the docker container. Make your changes here.
+goip.toml
 *.exe
 *.log
