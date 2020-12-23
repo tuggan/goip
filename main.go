@@ -60,8 +60,9 @@ func main() {
 
 	viper.SetConfigName("goip")
 	viper.AddConfigPath(*configFile)
-	viper.AddConfigPath("/etc/GoIP/")
-	viper.AddConfigPath("$HOME/.GoIP/")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/.goip/")
+	viper.AddConfigPath("/etc/goip/")
 	viper.AddConfigPath("config/")
 
 	err := viper.ReadInConfig()
