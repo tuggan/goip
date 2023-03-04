@@ -67,6 +67,10 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("X-Forwarded-For") != "" {
+		ip = r.Header.Get("X-Forwarded-For")
+	}
+
 	w.Header().Set("Server", h.server)
 
 	s := strings.ToLower(r.URL.Path)
