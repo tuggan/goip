@@ -60,7 +60,7 @@ func NewHandler(gzipEnabled bool, templateDir, version, branch, date, author, em
 
 func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
-	ip, port, e := net.SplitHostPort(r.RemoteAddr)
+	ip, _, e := net.SplitHostPort(r.RemoteAddr)
 	if e != nil {
 		h.renderError(w, r, path.Join(h.templateDir, "error"), "Error while parsing host and port", http.StatusInternalServerError)
 		logger.Error("[%d] error while parsing host and port %s", http.StatusInternalServerError, r.URL.Path)
@@ -74,18 +74,12 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	switch s {
 	case "/ip":
 		io.WriteString(w, ip)
-	case "/port":
-		io.WriteString(w, port)
 	case "/user-agent":
 		io.WriteString(w, r.Header.Get("User-Agent"))
-	case "/method":
-		io.WriteString(w, r.Method)
 	case "/host":
 		io.WriteString(w, r.Host)
 	case "/proto":
 		io.WriteString(w, r.Proto)
-	case "/content-length":
-		io.WriteString(w, strconv.FormatInt(r.ContentLength, 10))
 	case "/accept":
 		io.WriteString(w, r.Header.Get("Accept"))
 	case "/accept-encoding":
@@ -93,12 +87,9 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	case "/":
 		info := []head{
 			{"Ip", ip},
-			{"Port", port},
 			{"User-Agent", r.Header.Get("User-Agent")},
-			{"Method", r.Method},
 			{"Host", r.Host},
 			{"Proto", r.Proto},
-			{"Content-Length", strconv.FormatInt(r.ContentLength, 10)},
 			{"Accept", r.Header.Get("Accept")},
 			{"Accept-Encoding", r.Header.Get("Accept-Encoding")},
 		}
