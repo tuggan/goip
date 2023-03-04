@@ -162,18 +162,6 @@ func (h handler) GETHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h handler) POSTHandler(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != "POST" {
-		h.renderError(w, r, path.Join(h.templateDir, "error"), "method not POST", http.StatusBadRequest)
-		logger.Error("[Error] [%d] method not POST %s", http.StatusBadRequest, r.URL.Path)
-		return
-	}
-
-	io.Copy(w, r.Body)
-	logger.Access(r, http.StatusOK)
-}
-
 func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Open(path.Join(h.templateDir, "/favicon.ico"))
 	if err != nil {

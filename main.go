@@ -98,7 +98,6 @@ func main() {
 	logger.Info("Listening on %s", addr)
 	http.HandleFunc("/", h.MainHandler)
 	http.HandleFunc("/GET", h.GETHandler)
-	http.HandleFunc("/POST", h.POSTHandler)
 	http.HandleFunc("/favicon.ico", h.FaviconHandler)
 	http.HandleFunc("/robots.txt", h.RobotsHandler)
 	log.Fatal(http.Serve(s, nil))
