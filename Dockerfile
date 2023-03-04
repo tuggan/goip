@@ -1,5 +1,5 @@
 ### Because of some quirks with alpine the binary has to be built inside alpine
-FROM golang:1.15-alpine3.12 AS build
+FROM golang:1.20-alpine3.17 AS build
 
 RUN apk add --update git make
 
@@ -14,7 +14,7 @@ RUN make
 
 
 ### Bulid the actual container image
-FROM alpine:3.12
+FROM alpine:3.17
 
 LABEL maintainer="dennisvesterlund@gmail.com"
 
@@ -33,7 +33,7 @@ COPY --from=build /go/src/github.com/tuggan/goip/goip /usr/bin/
 COPY html /srv/goip/html/
 COPY goip.toml /etc/goip/
 
-RUN chmod 755 /usr/local/bin/goip
+RUN chmod 755 /usr/bin/goip
 
 EXPOSE 3000
 
