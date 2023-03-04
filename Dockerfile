@@ -31,7 +31,7 @@ RUN addgroup -S ${GOIP_GROUP} && adduser -S -G ${GOIP_GROUP} -H -D -g "" ${GOIP_
 
 COPY --from=build /go/src/github.com/tuggan/goip/goip /usr/bin/
 COPY html /srv/goip/html/
-COPY goip.toml /etc/goip/
+COPY config/goip.toml /etc/goip/
 
 RUN chmod 755 /usr/bin/goip
 
