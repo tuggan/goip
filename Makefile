@@ -12,7 +12,7 @@ get-depends:
 	go get -x ./...
 
 build:
-	go build -x -ldflags "-s -w -X main.Version=${GITVERSION} -X main.Date=${DATE} -X main.Branch=${BRANCH}" -o ${OUT_DIR}goip_${VERSION}
+	go build -x -ldflags "-s -w -X main.Version=${GITVERSION} -X main.Date=${DATE} -X main.Branch=${BRANCH}" -o ${OUT_DIR}goip
 
 build-all: directories get-depends
 	$(eval OS_PLATFORM_ARGS := linux windows darwin freebsd)

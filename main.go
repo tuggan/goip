@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
-	"strconv"
+	"os/signal"
+	"sync"
+	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -34,10 +37,28 @@ func printHelp() {
 	pflag.PrintDefaults()
 }
 
+func serve(wg *sync.WaitGroup, srv *http.Server, l net.Listener, certFile, keyFile string) {
+	defer wg.Done()
+
+	if certFile != "" && keyFile != "" {
+		if err := srv.ServeTLS(l, certFile, keyFile); err != http.ErrServerClosed {
+			log.Fatalf("HTTP server ServeTLS: %v", err)
+		}
+	} else {
+		if err := srv.Serve(l); err != http.ErrServerClosed {
+			log.Fatalf("HTTP server Serve: %v", err)
+		}
+	}
+	logger.Info("Shutting down serve routine")
+}
+
 func main() {
 
-	pflag.StringP("address", "a", "127.0.0.1", "Address to bind the server to")
-	pflag.Uint16P("port", "p", 3000, "port to listen on")
+	pflag.StringP("endpoint", "e", "127.0.0.1:3000", "Endpoint to listen on")
+	pflag.String("tlsEndpoint", "127.0.0.1:3000", "Endpoint to listen on")
+	pflag.String("tlsCert", "", "Path to TLS Certificate file")
+	pflag.String("tlsKey", "", "Path to TLS Key file")
+
 	versionFlag := pflag.BoolP("version", "v", false, "Print version and exit")
 	help := pflag.BoolP("help", "h", false, "Print help and exit")
 	configFile := pflag.StringP("config", "c", ".", "Path to config file")
@@ -70,7 +91,7 @@ func main() {
 		logger.Error("Error with config file: %s", err)
 	}
 
-	addr := viper.GetString("address") + ":" + strconv.Itoa(viper.GetInt("port"))
+	addr := viper.GetStringSlice("endpoint")
 
 	logger.Info("Starting %s", os.Args[0])
 	if 0 < len(os.Args[1:]) {
@@ -87,18 +108,82 @@ func main() {
 		egzip = viper.GetBool("enablegzip")
 	}
 
-	s, err := net.Listen("tcp", addr)
-	if err != nil {
-		logger.Error("Error binding listening socket: %s", err)
-		os.Exit(1)
+	var tlsEndpoint []string
+	if viper.IsSet("tlsEndpoint") {
+		tlsEndpoint = viper.GetStringSlice("tlsEndpoint")
 	}
 
-	h := web.NewHandler(egzip, t, Version, Branch, Date, author, email)
+	var tlsCert = ""
+	if viper.IsSet("tlsCert") {
+		tlsCert = viper.GetString("tlsCert")
+	}
 
-	logger.Info("Listening on %s", addr)
-	http.HandleFunc("/", h.MainHandler)
-	http.HandleFunc("/GET", h.GETHandler)
-	http.HandleFunc("/favicon.ico", h.FaviconHandler)
-	http.HandleFunc("/robots.txt", h.RobotsHandler)
-	log.Fatal(http.Serve(s, nil))
+	var tlsKey = ""
+	if viper.IsSet("tlsKey") {
+		tlsKey = viper.GetString("tlsKey")
+	}
+
+	var srv http.Server
+
+	handler := http.NewServeMux()
+
+	h := web.NewHandler(egzip, t, Version, Branch, Date, author, email)
+	handler.HandleFunc("/", h.MainHandler)
+	handler.HandleFunc("/GET", h.GETHandler)
+	handler.HandleFunc("/favicon.ico", h.FaviconHandler)
+	handler.HandleFunc("/robots.txt", h.RobotsHandler)
+
+	srv.Handler = handler
+
+	var wg sync.WaitGroup
+
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+
+		logger.Info("Shutting down server")
+
+		shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownRelease()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			// Error from closing listeners, or context timeout:
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+
+	}()
+
+	if len(tlsEndpoint) > 0 {
+		if tlsKey == "" || tlsCert == "" {
+			log.Fatal("Both certFile and keyFile must be set")
+		}
+
+		for _, e := range tlsEndpoint {
+			tls, err := net.Listen("tcp", e)
+			if err != nil {
+				logger.Error("Error binding listening socket: %s", err)
+				os.Exit(1)
+			}
+			logger.Info("Starting HTTPS server on https://%s", e)
+
+			wg.Add(1)
+			go serve(&wg, &srv, tls, tlsCert, tlsKey)
+		}
+	}
+
+	for _, e := range addr {
+		s, err := net.Listen("tcp", e)
+		if err != nil {
+			logger.Error("Error binding listening socket: %s", err)
+			os.Exit(1)
+		}
+		logger.Info("Starting HTTP server on http://%s", e)
+		wg.Add(1)
+		go serve(&wg, &srv, s, "", "")
+	}
+
+	logger.Info("Waiting for waitgroups")
+	wg.Wait()
+	logger.Info("Shutting down GoIP server")
 }

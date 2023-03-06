@@ -29,7 +29,7 @@ WORKDIR ${GOIP_ROOT}
 
 RUN addgroup -S ${GOIP_GROUP} && adduser -S -G ${GOIP_GROUP} -H -D -g "" ${GOIP_USER}
 
-COPY --from=build /go/src/github.com/tuggan/goip/goip /usr/bin/
+COPY --from=build /go/src/github.com/tuggan/goip/build/goip /usr/bin/
 COPY html /srv/goip/html/
 COPY config/goip.toml /etc/goip/
 

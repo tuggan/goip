@@ -1,7 +1,24 @@
 # GoIP config TOML file
-address="0.0.0.0"
-port=3000
-templatedir="html/"
+
+# Where the server listens for connections. This accepts lists.
+endpoint = "0.0.0.0:3000"
+
+# The directory that GoIP will search for templates
+templatedir = "html/"
+
+# Enable compression of response content
 # This option greatly saves bandwith but also impacts performance
 # Only index and error pages are effected
-enablegzip=true
+enablegzip = true
+
+
+# TLS Configuration
+
+# Where the server listens on TLS connections. This accepts lists.
+tlsEndpoint = "0.0.0.0:3443"
+
+# TLS certificate file
+tlsCert = "cert.crt"
+
+# Private key file
+tlsKey = "private.key"
