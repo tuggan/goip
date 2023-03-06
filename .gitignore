@@ -3,3 +3,4 @@ goip
 goip.toml
 *.exe
 *.log
+build/

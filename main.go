@@ -16,15 +16,15 @@ import (
 )
 
 var (
-	version string
-	date    string
-	branch  string
+	Version string
+	Date    string
+	Branch  string
 	author  = "Dennis Vesterlund"
 	email   = "dennisvesterlund@gmail.com"
 )
 
 func printVersion() {
-	fmt.Printf("GoIP %s (%s) branch %s © Dennis Vesterlund <dennisvesterlund@gmail.com>\n", version, date, branch)
+	fmt.Printf("GoIP %s (%s) branch %s © Dennis Vesterlund <dennisvesterlund@gmail.com>\n", Version, Date, Branch)
 }
 
 func printHelp() {
@@ -93,7 +93,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	h := web.NewHandler(egzip, t, version, branch, date, author, email)
+	h := web.NewHandler(egzip, t, Version, Branch, Date, author, email)
 
 	logger.Info("Listening on %s", addr)
 	http.HandleFunc("/", h.MainHandler)
