@@ -69,8 +69,8 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 
 func main() {
 
-	pflag.StringP("endpoint", "e", "127.0.0.1:3000", "Endpoint to listen on")
-	pflag.String("tlsEndpoint", "127.0.0.1:3000", "Endpoint to listen on")
+	pflag.StringSliceP("endpoint", "e", []string{"127.0.0.1:3000"}, "Endpoint(s) to listen on (repeatable)")
+	pflag.StringSlice("tlsEndpoint", []string{"127.0.0.1:3000"}, "TLS endpoint(s) to listen on (repeatable)")
 	pflag.String("tlsCert", "", "Path to TLS Certificate file")
 	pflag.String("tlsKey", "", "Path to TLS Key file")
 	pflag.StringSlice("trustedProxy", nil, "Trusted proxy IP or CIDR (repeatable, e.g. --trustedProxy 10.0.0.0/8)")
