@@ -123,11 +123,17 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	// Only trust X-Forwarded-For when the connection comes from a
 	// configured trusted proxy. This prevents direct clients from
 	// spoofing their IP address via the header.
-	if r.Header.Get("X-Forwarded-For") != "" && h.isTrustedProxy(r.RemoteAddr) {
-		ip = r.Header.Get("X-Forwarded-For")
+	// When multiple proxies are chained, the leftmost IP is the client.
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" && h.isTrustedProxy(r.RemoteAddr) {
+		if idx := strings.Index(xff, ","); idx != -1 {
+			ip = strings.TrimSpace(xff[:idx])
+		} else {
+			ip = strings.TrimSpace(xff)
+		}
 	}
 
 	w.Header().Set("Server", h.server)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 	s := strings.ToLower(r.URL.Path)
 

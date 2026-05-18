@@ -5,6 +5,7 @@
 
     <title>{{ .Title }}</title>
 
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Want to find your external IP address? Well you're in luck!">
 
@@ -149,7 +150,7 @@
         }
 
         .empty-val {
-            color: #BDBDBD;
+            color: #757575;
             font-style: italic;
         }
     </style>
@@ -167,8 +168,8 @@
         <header id="ip">{{.IP}}</header>
         <div id="content">
             <h1>What is my IP address?</h1>
-            <p>You'll find that above! And below!</p>
-            <p>All headers below are clickable for when you need only the specific information.</p>
+            <p>Your IP address is shown above. All your request headers are listed below.</p>
+            <p>Click any header name to get just that value as plain text (opens in a new tab).</p>
             <code>
                     curl http://{{.Hostname}}/ip<br>
                     {{.IP}}
