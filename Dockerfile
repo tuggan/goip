@@ -1,20 +1,13 @@
-### Because of some quirks with alpine the binary has to be built inside alpine
-FROM golang:1.20-alpine3.17 AS build
+FROM golang:1.25-alpine3.21 AS build
 
 RUN apk add --update git make
 
-RUN mkdir -p /go/src/github.com/tuggan/goip
-
-COPY . /go/src/github.com/tuggan/goip/
-
-WORKDIR /go/src/github.com/tuggan/goip
+WORKDIR /src
+COPY . .
 
 RUN make
 
-
-
-### Bulid the actual container image
-FROM alpine:3.17
+FROM alpine:3.21
 
 LABEL maintainer="dennis@vestern.se"
 
@@ -23,17 +16,17 @@ ENV GOIP_CONFIG_ROOT=/etc/goip/
 ENV GOIP_USER=goip
 ENV GOIP_GROUP=${GOIP_USER}
 
-RUN mkdir -p ${GOIP_ROOT} ${GOIP_CONFIG_ROOT} /srv/goip
+RUN mkdir -p ${GOIP_ROOT} ${GOIP_CONFIG_ROOT}
 
 WORKDIR ${GOIP_ROOT}
 
 RUN addgroup -S ${GOIP_GROUP} && adduser -S -G ${GOIP_GROUP} -H -D -g "" ${GOIP_USER}
 
-COPY --from=build /go/src/github.com/tuggan/goip/build/goip /usr/bin/
+COPY --from=build /src/build/goip /usr/local/bin/
 COPY html /srv/goip/html/
 COPY config/goip.toml /etc/goip/
 
-RUN chmod 755 /usr/bin/goip
+RUN chmod 755 /usr/local/bin/goip
 
 EXPOSE 3000
 
