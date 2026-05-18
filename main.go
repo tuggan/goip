@@ -67,6 +67,23 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// securityHeadersMiddleware sets security-related HTTP headers on every
+// response to enforce browser-side protections.
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Content-Security-Policy",
+			"default-src 'none'; style-src 'unsafe-inline'; img-src data:;")
+		// Only send HSTS on TLS connections.
+		if r.TLS != nil {
+			w.Header().Set("Strict-Transport-Security",
+				"max-age=63072000; includeSubDomains")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	pflag.StringSliceP("endpoint", "e", []string{"127.0.0.1:3000"}, "Endpoint(s) to listen on (repeatable)")
@@ -150,7 +167,7 @@ func main() {
 	handler.HandleFunc("/robots.txt", h.RobotsHandler)
 
 	// Wrap the mux with panic recovery middleware.
-	wrappedHandler := recoveryMiddleware(handler)
+	wrappedHandler := recoveryMiddleware(securityHeadersMiddleware(handler))
 
 	// Separate server instances for TLS and plain HTTP.
 	// Go's http.Server docs state Serve/ServeTLS must not be called

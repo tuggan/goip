@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -74,6 +77,70 @@ func TestPrintHelp(t *testing.T) {
 	}
 	if !strings.Contains(output, "config") {
 		t.Errorf("expected output to contain 'config', got: %q", output)
+	}
+}
+
+func TestSecurityHeadersMiddleware_SetsHeaders(t *testing.T) {
+	var gotHeaders http.Header
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeaders = w.Header().Clone()
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := securityHeadersMiddleware(next)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	middleware.ServeHTTP(w, req)
+
+	if gotHeaders.Get("X-Content-Type-Options") != "nosniff" {
+		t.Errorf("expected X-Content-Type-Options: nosniff, got %q", gotHeaders.Get("X-Content-Type-Options"))
+	}
+	if gotHeaders.Get("X-Frame-Options") != "DENY" {
+		t.Errorf("expected X-Frame-Options: DENY, got %q", gotHeaders.Get("X-Frame-Options"))
+	}
+	if gotHeaders.Get("Content-Security-Policy") == "" {
+		t.Error("expected Content-Security-Policy to be set")
+	}
+}
+
+func TestSecurityHeadersMiddleware_HSTSWithoutTLS(t *testing.T) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := securityHeadersMiddleware(next)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	// No TLS on request
+	w := httptest.NewRecorder()
+	middleware.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if h := resp.Header.Get("Strict-Transport-Security"); h != "" {
+		t.Errorf("expected no HSTS header without TLS, got %q", h)
+	}
+}
+
+func TestSecurityHeadersMiddleware_HSTSWithTLS(t *testing.T) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := securityHeadersMiddleware(next)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	// Simulate TLS by setting req.TLS
+	req.TLS = &tls.ConnectionState{}
+	w := httptest.NewRecorder()
+	middleware.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if h := resp.Header.Get("Strict-Transport-Security"); h == "" {
+		t.Error("expected HSTS header with TLS, got empty")
+	} else if !strings.Contains(h, "max-age=63072000") {
+		t.Errorf("expected HSTS max-age=63072000, got %q", h)
 	}
 }
 
