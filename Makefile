@@ -6,10 +6,10 @@ DOCKERHUB="tuggan"
 OUT_DIR = build/
 MKDIR_P = mkdir -p
 
-all: directories get-depends build
+all: directories get-depends build vet
 
 get-depends:
-	go get -x ./...
+	go mod download
 
 build:
 	go build -x -ldflags "-s -w -X main.Version=${GITVERSION} -X main.Date=${DATE} -X main.Branch=${BRANCH}" -o ${OUT_DIR}goip
@@ -88,7 +88,13 @@ ${OUT_DIR}:
 	${MKDIR_P} ${OUT_DIR}
 
 install:
-	go install -v
+	go install -v ./...
+
+vet:
+	go vet ./...
+
+run: build copyconfig
+	${OUT_DIR}goip
 
 test:
 	go test -v ./...
@@ -100,7 +106,8 @@ clean:
 	go clean -x 
 
 release:
-	git tag -a $(VERSION) -m "Release" || true
+	@if [ "$(VERSION)" != "$(GITVERSION)" ]; then echo "ERROR: VERSION file ($(VERSION)) does not match git tag ($(GITVERSION))"; exit 1; fi
+	git tag -a $(VERSION) -m "Release v$(VERSION)" || true
 	git push origin $(VERSION)
 	#goreleaser --rm-dist
 
@@ -112,4 +119,4 @@ endif
 dockerimage: copyconfig
 	docker image build -t ${DOCKERHUB}/goip:${GITVERSION} -t ${DOCKERHUB}/goip:dev .
 
-.PHONY: build install test fmt clean release
+.PHONY: build install run test fmt vet clean release

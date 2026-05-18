@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -110,7 +110,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	logger.Init(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
+	logger.Init(io.Discard, os.Stdout, os.Stdout, os.Stderr)
 
 	viper.SetConfigName("goip")
 	viper.AddConfigPath(*configFile)

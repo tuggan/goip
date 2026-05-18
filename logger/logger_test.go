@@ -41,17 +41,6 @@ func TestInitAndError(t *testing.T) {
 	}
 }
 
-func TestInitAndTrace(t *testing.T) {
-	var buf bytes.Buffer
-	Init(&buf, &buf, &buf, &buf)
-
-	Trace("trace %s", "me")
-	out := buf.String()
-	if !strings.Contains(out, "trace me") {
-		t.Errorf("expected Trace output to contain 'trace me', got: %q", out)
-	}
-}
-
 func TestAccess(t *testing.T) {
 	var buf bytes.Buffer
 	Init(&buf, &buf, &buf, &buf)

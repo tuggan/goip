@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"html/template"
@@ -169,9 +170,34 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Access(r, http.StatusOK)
 }
 
+// safeTemplatePath validates that the given path stays within the configured
+// template directory to prevent directory traversal attacks.
+func (h handler) safeTemplatePath(fullPath string) (string, error) {
+	absPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return "", err
+	}
+	absDir, err := filepath.Abs(h.templateDir)
+	if err != nil {
+		return "", err
+	}
+	if !strings.HasPrefix(absPath, absDir) {
+		return "", fmt.Errorf("template path %q escapes template directory %q", absPath, absDir)
+	}
+	return fullPath, nil
+}
+
 func (h handler) renderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, m page) {
+	safeTmpl, err := h.safeTemplatePath(tmpl)
+	if err != nil {
+		logger.Error("Template path validation failed: %v", err)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "500 Internal Server Error")
+		return
+	}
 	var tw io.Writer = w
-	t, err := template.ParseFiles(tmpl + ".html")
+	t, err := template.ParseFiles(safeTmpl + ".html")
 	if err != nil {
 		logger.Error("Failed to parse template %s: %v", tmpl, err)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -190,6 +216,14 @@ func (h handler) renderTemplate(w http.ResponseWriter, r *http.Request, tmpl str
 }
 
 func (h handler) renderError(w http.ResponseWriter, r *http.Request, tmpl string, s string, code int) {
+	safeTmpl, err := h.safeTemplatePath(tmpl)
+	if err != nil {
+		logger.Error("Template path validation failed: %v", err)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "500 Internal Server Error")
+		return
+	}
 	var tw io.Writer = w
 	p := page{
 		Title:   fmt.Sprintf("%d: %s", code, http.StatusText(code)),
@@ -197,7 +231,7 @@ func (h handler) renderError(w http.ResponseWriter, r *http.Request, tmpl string
 		Message: s,
 		Code:    strconv.Itoa(code),
 	}
-	t, err := template.ParseFiles(tmpl + ".html")
+	t, err := template.ParseFiles(safeTmpl + ".html")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if h.gzipEnabled && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		w.Header().Set("Content-Encoding", "gzip")
@@ -228,7 +262,13 @@ func (h handler) GETHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
-	file, err := os.Open(path.Join(h.templateDir, "/favicon.ico"))
+	favPath := path.Join(h.templateDir, "/favicon.ico")
+	if _, err := h.safeTemplatePath(favPath); err != nil {
+		logger.Error("Favicon path validation failed: %v", err)
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+	file, err := os.Open(favPath)
 	if err != nil {
 		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
@@ -240,7 +280,13 @@ func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h handler) RobotsHandler(w http.ResponseWriter, r *http.Request) {
-	file, err := os.Open(path.Join(h.templateDir, "/robots.txt"))
+	robPath := path.Join(h.templateDir, "/robots.txt")
+	if _, err := h.safeTemplatePath(robPath); err != nil {
+		logger.Error("Robots path validation failed: %v", err)
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+	file, err := os.Open(robPath)
 	if err != nil {
 		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)

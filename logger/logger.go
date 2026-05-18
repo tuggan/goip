@@ -20,10 +20,6 @@ func Init(tH io.Writer, iH io.Writer, wH io.Writer, eH io.Writer) {
 	logger.err = log.New(eH, "", log.Ldate|log.Ltime|log.Lmicroseconds)
 }
 
-func Trace(format string, v ...interface{}) {
-	logger.trace.Printf(format, v...)
-}
-
 func Info(format string, v ...interface{}) {
 	logger.info.Printf(format, v...)
 }
