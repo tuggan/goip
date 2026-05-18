@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/spf13/pflag"
+	"github.com/tuggan/goip/logger"
+	"github.com/tuggan/goip/web"
 )
 
 func TestPrintVersion(t *testing.T) {
@@ -101,6 +103,10 @@ func TestSecurityHeadersMiddleware_SetsHeaders(t *testing.T) {
 	if gotHeaders.Get("Content-Security-Policy") == "" {
 		t.Error("expected Content-Security-Policy to be set")
 	}
+	if !strings.Contains(gotHeaders.Get("Content-Security-Policy"), "img-src 'self'") {
+		t.Errorf("expected img-src to include 'self' for same-origin images (favicon), got: %q",
+			gotHeaders.Get("Content-Security-Policy"))
+	}
 }
 
 func TestSecurityHeadersMiddleware_HSTSWithoutTLS(t *testing.T) {
@@ -165,5 +171,42 @@ func TestPrintVersion_EmptyVersion(t *testing.T) {
 
 	if !strings.Contains(output, "GoIP") {
 		t.Errorf("expected output to contain 'GoIP' even with empty version, got: %q", output)
+	}
+}
+
+func TestFaviconHandler_ThroughSecurityHeadersMiddleware(t *testing.T) {
+	// Logger must be initialized before any handler that calls logger.Access.
+	logger.Init(io.Discard, io.Discard, io.Discard, io.Discard)
+
+	// Build the handler chain exactly as in production:
+	// recoveryMiddleware → securityHeadersMiddleware → handler mux
+	handler := http.NewServeMux()
+	h := web.NewHandler(true, "html/", "v0.8", "master", "2026-05-18", "Author", "dennis@vestern.se", nil)
+	handler.HandleFunc("/favicon.ico", h.FaviconHandler)
+	handler.HandleFunc("/", h.MainHandler)
+
+	wrapped := recoveryMiddleware(securityHeadersMiddleware(handler))
+
+	req := httptest.NewRequest(http.MethodGet, "/favicon.ico", nil)
+	req.RemoteAddr = "127.0.0.1:12345"
+	w := httptest.NewRecorder()
+	wrapped.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK for favicon through middleware, got %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read favicon body: %v", err)
+	}
+	if len(body) == 0 {
+		t.Error("expected non-empty favicon body")
+	}
+	// Verify the response still gets security headers
+	if resp.Header.Get("X-Content-Type-Options") != "nosniff" {
+		t.Errorf("expected X-Content-Type-Options: nosniff, got %q", resp.Header.Get("X-Content-Type-Options"))
 	}
 }
