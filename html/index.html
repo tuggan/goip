@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <title>{{ .Title }}</title>
-
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
@@ -10,32 +9,39 @@
       content="Want to find your external IP address? Well you're in luck!"
     />
 
-    <!-- 
-        primary-color: #03A9F4;
-        primary-background: #FFFFFF;
-        accent-color: #9E9E9E;
-        divider-color: #BDBDBD;
-        primary-text: #212121;
-        secondary-text: #757575;
-    -->
     <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
       html,
       body {
-        padding: 0;
-        margin: 0;
         height: 100%;
-        background: #ffffff;
-        font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background: #f4f6f8;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        color: #1a1a2e;
+      }
+
+      #container {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
       }
 
       #github-corner-svg {
-        fill: #212121;
-        color: #03a9f4;
+        fill: #1a1a2e;
+        color: #fff;
         position: absolute;
         top: 0;
-        border: 0;
         left: 0;
+        border: 0;
         transform: scale(-1, 1);
+        z-index: 10;
       }
 
       .github-corner:hover .octo-arm {
@@ -66,156 +72,295 @@
         }
       }
 
-      #container {
-        min-height: 100%;
-        position: relative;
+      #hero {
+        background: linear-gradient(
+          135deg,
+          #0f0c29 0%,
+          #302b63 50%,
+          #24243e 100%
+        );
+        color: #fff;
+        padding: 3rem 1.5rem 2.5rem;
+        text-align: center;
+      }
+
+      #hero-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 0.5rem;
       }
 
       #ip {
-        background: #03a9f4;
-        color: #212121;
-        min-height: 12rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        font-size: clamp(2rem, 8vw, 7rem);
-        font-weight: bold;
-        width: 100%;
-        padding: 1rem;
-        box-sizing: border-box;
+        font-size: clamp(2.2rem, 8vw, 6rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
         overflow-wrap: break-word;
         word-break: break-word;
+        text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+        animation: fadeUp 0.6s ease-out both;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       #content {
-        padding-bottom: 3rem;
-        margin-left: 5%;
-        margin-right: 5%;
-        width: 90%;
+        flex: 1;
+        max-width: 1024px;
+        width: 92%;
+        margin: 1.5rem auto;
       }
 
-      a {
-        color: #000000;
-        text-decoration: none;
+      #card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        padding: 2rem 2.25rem;
+        animation: fadeUp 0.5s ease-out 0.15s both;
       }
 
-      code {
-        background-color: #eee;
-        border: 1px solid #999;
-        display: block;
-        padding: 1rem;
+      #card h1 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 0.5rem;
       }
 
-      p.info {
+      #card h1 span {
         color: #888;
-        font-size: 0.85rem;
+        font-weight: 400;
+      }
+
+      #card > p {
+        color: #666;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: 1.25rem;
+      }
+
+      #card > p.info {
+        color: #999;
+        font-size: 0.8rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .info-sep {
+        display: inline-block;
+        margin: 0 0.4em;
+        color: #ddd;
+      }
+
+      .code-block {
+        background: #f7f8fa;
+        border: 1px solid #e8eaed;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas,
+          monospace;
+        font-size: 0.82rem;
+        line-height: 1.65;
+        color: #333;
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .code-block .prompt {
+        color: #888;
+        user-select: none;
+      }
+      .code-block .url {
+        color: #2563eb;
+      }
+      .code-block .ip-out {
+        color: #666;
       }
 
       .table-wrapper {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        margin-top: 2rem;
+        border-radius: 10px;
+        border: 1px solid #e8eaed;
       }
 
       table {
-        border-collapse: collapse;
-        background-color: #ffffff;
-        padding: 1rem;
         width: 100%;
+        border-collapse: collapse;
+        background: #fff;
       }
 
-      th,
-      td {
+      thead th {
+        background: #f7f8fa;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #888;
+        padding: 0.75rem 1.25rem;
         text-align: left;
-        padding: 1rem;
-        border-bottom-color: #bdbdbd;
-        border-bottom-style: solid;
-        border-bottom-width: 1px;
+        border-bottom: 1px solid #e8eaed;
       }
 
-      th {
-        font-weight: bold;
-        font-size: 1.2rem;
+      tbody tr {
+        transition: background 0.15s ease;
       }
 
-      td {
-        font-size: 1rem;
+      tbody tr:not(:last-child) {
+        border-bottom: 1px solid #f0f0f0;
       }
 
-      footer {
-        position: absolute;
-        bottom: 0;
-        width: 90%;
-        margin-left: 5%;
-        margin-right: 5%;
-        height: 3rem;
-        line-height: 3rem;
-        font-size: 0.8rem;
-        text-align: center;
-        color: #757575;
-        border-top-width: 1px;
-        border-top-color: #bdbdbd;
-        border-top-style: solid;
+      tbody tr:hover {
+        background: #fafbfc;
       }
 
-      footer a {
-        color: #757575;
+      tbody td {
+        padding: 0.7rem 1.25rem;
+        font-size: 0.88rem;
+        vertical-align: middle;
       }
 
-      .nobreak {
+      /* Header name cells */
+      tbody td:first-child {
         white-space: nowrap;
       }
 
-      .empty-val {
-        color: #757575;
-        font-style: italic;
+      tbody td:first-child a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        transition: color 0.15s ease;
       }
 
+      tbody td:first-child a:hover {
+        color: #1d4ed8;
+        text-decoration: underline;
+      }
+
+      /* Value cells */
       .copy-value {
-        position: relative;
         cursor: pointer;
+        position: relative;
+        font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas,
+          monospace;
+        font-size: 0.84rem;
+        color: #1a1a2e;
+        transition: color 0.15s ease;
       }
 
       .copy-value:hover {
-        color: #03a9f4;
+        color: #2563eb;
       }
 
-      .copy-feedback {
-        position: fixed;
-        background: #4caf50;
+      .empty-val {
+        color: #bbb;
+        font-style: italic;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+      }
+
+      #copy-feedback {
+        position: absolute;
+        background: #16a34a;
         color: #fff;
-        font-size: 0.7rem;
+        font-size: 0.72rem;
+        font-weight: 600;
         line-height: 1.2;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
         white-space: nowrap;
         pointer-events: none;
         opacity: 0;
         margin-top: 10px;
         transition:
-          opacity 0.25s ease-out,
-          margin-top 0.25s ease-out;
+          opacity 0.2s ease-out,
+          margin-top 0.2s ease-out;
         z-index: 1000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
       }
 
-      .copy-feedback::after {
+      #copy-feedback.show {
+        opacity: 1;
+        margin-top: 0;
+      }
+
+      #copy-feedback::after {
         content: "";
         position: absolute;
         top: 100%;
         left: 50%;
         transform: translateX(-50%);
         border: 4px solid transparent;
-        border-top-color: #4caf50;
+        border-top-color: #16a34a;
       }
 
-      .copy-feedback.show {
+      #copy-feedback.show {
         opacity: 1;
-        margin-top: 0;
+      }
+
+      footer {
+        text-align: center;
+        padding: 1.5rem;
+        font-size: 0.78rem;
+        color: #999;
+        border-top: 1px solid #e8eaed;
+        margin-top: -1px;
+        background: #fff;
+        border-radius: 0 0 16px 16px;
+      }
+
+      footer a {
+        color: #888;
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        color: #2563eb;
+        text-decoration: underline;
+      }
+
+      .nobreak {
+        white-space: nowrap;
+      }
+
+      @media (max-width: 600px) {
+        #hero {
+          padding: 2rem 1rem 3rem;
+        }
+        #card {
+          padding: 1.25rem 1rem;
+          border-radius: 12px;
+        }
+        #card h1 {
+          font-size: 1.15rem;
+        }
+        thead th,
+        tbody td {
+          padding: 0.6rem 0.85rem;
+        }
+        tbody td:first-child a {
+          font-size: 0.72rem;
+        }
+        .copy-value {
+          font-size: 0.8rem;
+        }
       }
     </style>
   </head>
-
   <body>
     <div id="container">
       <a
@@ -244,79 +389,93 @@
           ></path>
         </svg>
       </a>
-      <header id="ip">{{.IP}}</header>
+      <span id="copy-feedback">Copied!</span>
+
+      <header id="hero">
+        <div id="hero-label">Your IP address</div>
+        <div id="ip">{{.IP}}</div>
+      </header>
+
       <div id="content">
-        <h1>What is my IP address?</h1>
-        <p>
-          Your IP address is shown above. All your request headers are listed
-          below.
-        </p>
-        <code>
-          curl http://{{.Hostname}}/ip<br />
-          {{.IP}}
-        </code>
-        <p class="info">
-          Click any header name to get just that value as plain text (opens in a
-          new tab).<br />
-          Click any value to copy it to your clipboard.
-        </p>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Header</th>
-                <th>Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{range .Clientinfo}}
-              <tr>
-                <td>
-                  <a href="{{.Key}}">{{.Key}}</a>
-                </td>
-                <td
-                  onclick="copyValue(this, event)"
-                  class="copy-value"
-                  title="Click to copy"
-                >
-                  <span class="copy-value-text"
-                    >{{if .Val}}{{.Val}}{{else}}<span class="empty-val">—</span
-                    >{{end}}</span
+        <div id="card">
+          <h1>Request headers</h1>
+          <p>All headers sent by your browser are listed below.</p>
+
+          <div class="code-block">
+            <span class="prompt">$</span> curl
+            <span class="url">http://{{.Hostname}}/ip</span><br />
+            <span class="ip-out">{{.IP}}</span>
+          </div>
+
+          <p>
+            Click a header name to open its value as plain text.<br />
+            Click any value to copy it to your clipboard.
+          </p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Header</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range .Clientinfo}}
+                <tr>
+                  <td><a href="{{.Key}}">{{.Key}}</a></td>
+                  <td
+                    onclick="copyValue(this, event)"
+                    class="copy-value"
+                    title="Click to copy"
                   >
-                  <span class="copy-feedback">Copied!</span>
-                </td>
-              </tr>
-              {{end}}
-            </tbody>
-          </table>
+                    <span class="copy-value-text"
+                      >{{if .Val}}{{.Val}}{{else}}<span class="empty-val"
+                        >—</span
+                      >{{end}}</span
+                    >
+                  </td>
+                </tr>
+                {{end}}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <script>
-        function copyValue(el, event) {
-          var textEl = el.querySelector(".copy-value-text");
-          var text = (textEl.textContent || textEl.innerText).trim();
-          if (text === "\u2014" || text === "—" || text === "") return;
-          navigator.clipboard.writeText(text);
-          var feedback = el.querySelector(".copy-feedback");
-          if (feedback) {
-            feedback.style.left = event.clientX + "px";
-            feedback.style.top = event.clientY - 30 + "px";
-            feedback.style.transform = "translateX(-50%)";
-            feedback.classList.remove("show");
-            feedback.offsetHeight; // force reflow
-            feedback.classList.add("show");
-            setTimeout(function () {
-              feedback.classList.remove("show");
-            }, 1200);
-          }
-        }
-      </script>
+
       <footer>
         GoIP {{.Version}} ({{.CommitDate}})
-        <span id="copyright" class="nobreak"
+        <span class="nobreak"
           >© <a href="mailto:{{.Email}}">{{.Author}}</a></span
         >
       </footer>
     </div>
+
+    <script>
+      const feedback = document.getElementById("copy-feedback");
+      var copyTimer = null;
+      function copyValue(el, event) {
+        var textEl = el.querySelector(".copy-value-text");
+        var text = (textEl.textContent || textEl.innerText).trim();
+        if (text === "\u2014" || text === "—" || text === "") return;
+        navigator.clipboard.writeText(text);
+        if (feedback) {
+          if (copyTimer) {
+            feedback.classList.remove("show");
+            clearTimeout(copyTimer);
+            copyTimer = null;
+          }
+          feedback.style.transform = "none";
+          feedback.style.left = event.clientX - feedback.offsetWidth / 2 + "px";
+          feedback.style.top =
+            event.clientY - feedback.offsetHeight - 10 + "px";
+          feedback.classList.add("show");
+          copyTimer = setTimeout(function () {
+            feedback.classList.remove("show");
+            copyTimer = null;
+          }, 1000);
+        }
+      }
+    </script>
   </body>
 </html>
