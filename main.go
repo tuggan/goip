@@ -23,11 +23,11 @@ var (
 	Date    string
 	Branch  string
 	author  = "Dennis Vesterlund"
-	email   = "dennisvesterlund@gmail.com"
+	email   = "dennis@vestern.se"
 )
 
 func printVersion() {
-	fmt.Printf("GoIP %s (%s) branch %s © Dennis Vesterlund <dennisvesterlund@gmail.com>\n", Version, Date, Branch)
+	fmt.Printf("GoIP %s (%s) branch %s © Dennis Vesterlund <dennis@vestern.se>\n", Version, Date, Branch)
 }
 
 func printHelp() {

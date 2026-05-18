@@ -16,7 +16,7 @@ RUN make
 ### Bulid the actual container image
 FROM alpine:3.17
 
-LABEL maintainer="dennisvesterlund@gmail.com"
+LABEL maintainer="dennis@vestern.se"
 
 ENV GOIP_ROOT=/srv/goip/
 ENV GOIP_CONFIG_ROOT=/etc/goip/
