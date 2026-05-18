@@ -137,6 +137,11 @@
         .nobreak {
             white-space: nowrap;
         }
+
+        .empty-val {
+            color: #BDBDBD;
+            font-style: italic;
+        }
     </style>
 </head>
 
@@ -172,7 +177,7 @@
                         <a href="{{.Key}}">{{.Key}}</a>
                     </td>
                     <td>
-                        {{.Val}}
+                        {{if .Val}}{{.Val}}{{else}}<span class="empty-val">—</span>{{end}}
                     </td>
                 </tr>
                 {{end}}

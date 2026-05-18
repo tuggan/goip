@@ -142,14 +142,32 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, r.Header.Get("Accept"))
 	case "/accept-encoding":
 		io.WriteString(w, r.Header.Get("Accept-Encoding"))
+	case "/accept-language":
+		io.WriteString(w, r.Header.Get("Accept-Language"))
+	case "/method":
+		io.WriteString(w, r.Method)
+	case "/content-type":
+		io.WriteString(w, r.Header.Get("Content-Type"))
+	case "/origin":
+		io.WriteString(w, r.Header.Get("Origin"))
+	case "/referer":
+		io.WriteString(w, r.Header.Get("Referer"))
+	case "/x-forwarded-for":
+		io.WriteString(w, r.Header.Get("X-Forwarded-For"))
 	case "/":
 		info := []head{
 			{"Ip", ip},
+			{"Method", r.Method},
 			{"User-Agent", r.Header.Get("User-Agent")},
 			{"Host", r.Host},
 			{"Proto", r.Proto},
 			{"Accept", r.Header.Get("Accept")},
 			{"Accept-Encoding", r.Header.Get("Accept-Encoding")},
+			{"Accept-Language", r.Header.Get("Accept-Language")},
+			{"Content-Type", r.Header.Get("Content-Type")},
+			{"Origin", r.Header.Get("Origin")},
+			{"Referer", r.Header.Get("Referer")},
+			{"X-Forwarded-For", r.Header.Get("X-Forwarded-For")},
 		}
 		data := page{
 			Title:      "IPConf",

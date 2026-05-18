@@ -187,6 +187,125 @@ func TestMainHandler_AcceptEncoding(t *testing.T) {
 	}
 }
 
+func TestMainHandler_AcceptLanguage(t *testing.T) {
+	h := testHandler()
+	req := httptest.NewRequest(http.MethodGet, "/accept-language", nil)
+	req.RemoteAddr = "1.2.3.4:5678"
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "en-US,en;q=0.9" {
+		t.Errorf("expected 'en-US,en;q=0.9', got %q", body)
+	}
+}
+
+func TestMainHandler_Method(t *testing.T) {
+	h := testHandler()
+	req := httptest.NewRequest(http.MethodPost, "/method", nil)
+	req.RemoteAddr = "1.2.3.4:5678"
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != http.MethodPost {
+		t.Errorf("expected 'POST', got %q", body)
+	}
+}
+
+func TestMainHandler_ContentType(t *testing.T) {
+	h := testHandler()
+	req := httptest.NewRequest(http.MethodGet, "/content-type", nil)
+	req.RemoteAddr = "1.2.3.4:5678"
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "application/json" {
+		t.Errorf("expected 'application/json', got %q", body)
+	}
+}
+
+func TestMainHandler_Origin(t *testing.T) {
+	h := testHandler()
+	req := httptest.NewRequest(http.MethodGet, "/origin", nil)
+	req.RemoteAddr = "1.2.3.4:5678"
+	req.Header.Set("Origin", "https://example.com")
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "https://example.com" {
+		t.Errorf("expected 'https://example.com', got %q", body)
+	}
+}
+
+func TestMainHandler_Referer(t *testing.T) {
+	h := testHandler()
+	req := httptest.NewRequest(http.MethodGet, "/referer", nil)
+	req.RemoteAddr = "1.2.3.4:5678"
+	req.Header.Set("Referer", "https://example.com/previous")
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "https://example.com/previous" {
+		t.Errorf("expected 'https://example.com/previous', got %q", body)
+	}
+}
+
+func TestMainHandler_XForwardedFor_Raw(t *testing.T) {
+	h := testHandler()
+	req := httptest.NewRequest(http.MethodGet, "/x-forwarded-for", nil)
+	req.RemoteAddr = "1.2.3.4:5678"
+	req.Header.Set("X-Forwarded-For", "203.0.113.5, 10.0.0.1")
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "203.0.113.5, 10.0.0.1" {
+		t.Errorf("expected raw X-Forwarded-For value, got %q", body)
+	}
+}
+
 func TestMainHandler_NotFound(t *testing.T) {
 	h := testHandler()
 	req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
