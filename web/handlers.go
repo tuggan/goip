@@ -3,6 +3,7 @@ package web
 import (
 	"compress/gzip"
 	"fmt"
+	"html"
 	"io"
 	"net"
 	"net/http"
@@ -28,6 +29,7 @@ type page struct {
 	Message    string
 	Code       string
 	IP         string
+	Hostname   string
 	Version    string
 	Branch     string
 	CommitDate string
@@ -173,6 +175,7 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 			Title:      "IPConf",
 			Clientinfo: info,
 			IP:         ip,
+			Hostname:   r.Host,
 			Version:    h.version,
 			Branch:     h.branch,
 			CommitDate: h.date,
@@ -260,7 +263,7 @@ func (h handler) renderError(w http.ResponseWriter, r *http.Request, tmpl string
 	w.WriteHeader(code)
 	if err != nil {
 		logger.Error("Failed to parse error template %s: %v", tmpl, err)
-		fmt.Fprintf(tw, "<h1>%d: %s</h1><p>%s</p>", code, http.StatusText(code), s)
+		fmt.Fprintf(tw, "<h1>%d: %s</h1><p>%s</p>", code, http.StatusText(code), html.EscapeString(s))
 		return
 	}
 	t.Execute(tw, p)

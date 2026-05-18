@@ -23,7 +23,7 @@
             margin: 0;
             height: 100%;
             background: #FFFFFF;
-            font-family: 'RobotoDraft', 'Roboto', 'Helvetica Neue, Helvetica, Arial', sans-serif;
+            font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
         }
 
         #github-corner-svg {
@@ -94,8 +94,13 @@
             padding: 1rem;
         }
 
-        table {
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             margin-top: 2rem;
+        }
+
+        table {
             border-collapse: collapse;
             background-color: #FFFFFF;
             padding: 1rem;
@@ -165,10 +170,10 @@
             <p>You'll find that above! And below!</p>
             <p>All headers below are clickable for when you need only the specific information.</p>
             <code>
-                    curl http://ipconf.se/ip<br>
+                    curl http://{{.Hostname}}/ip<br>
                     {{.IP}}
             </code>
-        <table>
+        <div class="table-wrapper"><table>
             <thead>
                 <tr>
                     <th>Header</th>
@@ -187,10 +192,10 @@
                 </tr>
                 {{end}}
             </tbody>
-        </table>
+        </table></div>
     </div>
     <footer>
-            GoIP {{.Version}} ({{.CommitDate}}) <span id="copyright" class="nobreak">© <a href="mailto:{{.Email}}">{{.Author}}</span></a>
+            GoIP {{.Version}} ({{.CommitDate}}) <span id="copyright" class="nobreak">© <a href="mailto:{{.Email}}">{{.Author}}</a></span>
     </footer>
 </div>
 </body>
