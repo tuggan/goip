@@ -12,18 +12,6 @@ templatedir = "html/"
 enablegzip = true
 
 
-# TLS Configuration
-
-# Where the server listens on TLS connections. This accepts lists.
-tlsEndpoint = "0.0.0.0:3443"
-
-# TLS certificate file
-tlsCert = "cert.crt"
-
-# Private key file
-tlsKey = "private.key"
-
-
 # Trusted proxies
 # List of IP addresses or CIDR ranges that are allowed to set the
 # X-Forwarded-For header. When a request comes from a trusted proxy,
@@ -33,8 +21,17 @@ tlsKey = "private.key"
 #   trustedProxies = ["127.0.0.1", "10.0.0.0/8", "192.168.0.0/16"]
 trustedProxies = []
 
+# TLS Configuration
+
+# Where the server listens on TLS connections. This accepts lists.
+# tlsEndpoint = "0.0.0.0:3443"
+
+# TLS certificate file
+# tlsCert = "cert.crt"
+
+# Private key file
+# tlsKey = "private.key"
+
 # Rate limiting
 # Maximum requests per second per client IP. Set to 0 to disable.
 rateLimit = 10
-# Maximum burst size (optional, defaults to rateLimit rounded up if not set)
-# rateLimitBurst = 20
