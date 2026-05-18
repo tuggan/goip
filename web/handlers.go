@@ -10,7 +10,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"text/template"
+	"html/template"
 
 	"github.com/tuggan/goip/logger"
 )
