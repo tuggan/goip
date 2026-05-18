@@ -123,14 +123,6 @@ func main() {
 		tlsKey = viper.GetString("tlsKey")
 	}
 
-	var srv http.Server
-
-	srv.ReadTimeout = 10 * time.Second
-	srv.ReadHeaderTimeout = 5 * time.Second
-	srv.WriteTimeout = 10 * time.Second
-	srv.IdleTimeout = 60 * time.Second
-	srv.MaxHeaderBytes = 1 << 20 // 1 MB
-
 	handler := http.NewServeMux()
 
 	h := web.NewHandler(egzip, t, Version, Branch, Date, author, email)
@@ -139,7 +131,24 @@ func main() {
 	handler.HandleFunc("/favicon.ico", h.FaviconHandler)
 	handler.HandleFunc("/robots.txt", h.RobotsHandler)
 
-	srv.Handler = handler
+	// Separate server instances for TLS and plain HTTP.
+	// Go's http.Server docs state Serve/ServeTLS must not be called
+	// concurrently on the same server.
+	var plainSrv http.Server
+	plainSrv.Handler = handler
+	plainSrv.ReadTimeout = 10 * time.Second
+	plainSrv.ReadHeaderTimeout = 5 * time.Second
+	plainSrv.WriteTimeout = 10 * time.Second
+	plainSrv.IdleTimeout = 60 * time.Second
+	plainSrv.MaxHeaderBytes = 1 << 20 // 1 MB
+
+	var tlsSrv http.Server
+	tlsSrv.Handler = handler
+	tlsSrv.ReadTimeout = 10 * time.Second
+	tlsSrv.ReadHeaderTimeout = 5 * time.Second
+	tlsSrv.WriteTimeout = 10 * time.Second
+	tlsSrv.IdleTimeout = 60 * time.Second
+	tlsSrv.MaxHeaderBytes = 1 << 20 // 1 MB
 
 	var wg sync.WaitGroup
 
@@ -153,11 +162,14 @@ func main() {
 		shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownRelease()
 
-		if err := srv.Shutdown(shutdownCtx); err != nil {
-			// Error from closing listeners, or context timeout:
-			log.Printf("HTTP server Shutdown: %v", err)
+		// Shutdown both servers. Calling Shutdown on a server that
+		// never had Serve called is a safe no-op.
+		if err := plainSrv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Plain HTTP server Shutdown: %v", err)
 		}
-
+		if err := tlsSrv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("TLS server Shutdown: %v", err)
+		}
 	}()
 
 	if len(tlsEndpoint) > 0 {
@@ -166,7 +178,7 @@ func main() {
 		}
 
 		for _, e := range tlsEndpoint {
-			tls, err := net.Listen("tcp", e)
+			tlsListener, err := net.Listen("tcp", e)
 			if err != nil {
 				logger.Error("Error binding listening socket: %s", err)
 				os.Exit(1)
@@ -174,19 +186,19 @@ func main() {
 			logger.Info("Starting HTTPS server on https://%s", e)
 
 			wg.Add(1)
-			go serve(&wg, &srv, tls, tlsCert, tlsKey)
+			go serve(&wg, &tlsSrv, tlsListener, tlsCert, tlsKey)
 		}
 	}
 
 	for _, e := range addr {
-		s, err := net.Listen("tcp", e)
+		listener, err := net.Listen("tcp", e)
 		if err != nil {
 			logger.Error("Error binding listening socket: %s", err)
 			os.Exit(1)
 		}
 		logger.Info("Starting HTTP server on http://%s", e)
 		wg.Add(1)
-		go serve(&wg, &srv, s, "", "")
+		go serve(&wg, &plainSrv, listener, "", "")
 	}
 
 	logger.Info("Waiting for waitgroups")
