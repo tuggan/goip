@@ -118,7 +118,14 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h handler) renderTemplate(w http.ResponseWriter, r *http.Request, tmpl string, m page) {
 	var tw io.Writer = w
-	t, _ := template.ParseFiles(tmpl + ".html")
+	t, err := template.ParseFiles(tmpl + ".html")
+	if err != nil {
+		logger.Error("Failed to parse template %s: %v", tmpl, err)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "500 Internal Server Error")
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if h.gzipEnabled && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		w.Header().Set("Content-Encoding", "gzip")
@@ -137,7 +144,7 @@ func (h handler) renderError(w http.ResponseWriter, r *http.Request, tmpl string
 		Message: s,
 		Code:    strconv.Itoa(code),
 	}
-	t, _ := template.ParseFiles(tmpl + ".html")
+	t, err := template.ParseFiles(tmpl + ".html")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if h.gzipEnabled && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		w.Header().Set("Content-Encoding", "gzip")
@@ -146,6 +153,11 @@ func (h handler) renderError(w http.ResponseWriter, r *http.Request, tmpl string
 		tw = gw
 	}
 	w.WriteHeader(code)
+	if err != nil {
+		logger.Error("Failed to parse error template %s: %v", tmpl, err)
+		fmt.Fprintf(tw, "<h1>%d: %s</h1><p>%s</p>", code, http.StatusText(code), s)
+		return
+	}
 	t.Execute(tw, p)
 }
 
@@ -167,7 +179,9 @@ func (h handler) FaviconHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
+		return
 	}
+	defer file.Close()
 	io.Copy(w, file)
 	logger.Access(r, http.StatusOK)
 }
@@ -177,7 +191,9 @@ func (h handler) RobotsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.renderError(w, r, path.Join(h.templateDir, "error"), fmt.Sprintf("Could not find %s", r.URL.Path), http.StatusNotFound)
 		logger.Access(r, http.StatusNotFound)
+		return
 	}
+	defer file.Close()
 	io.Copy(w, file)
 	logger.Access(r, http.StatusOK)
 }

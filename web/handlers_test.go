@@ -435,15 +435,13 @@ func TestFaviconHandler_Missing(t *testing.T) {
 	req.RemoteAddr = "1.2.3.4:5678"
 	w := httptest.NewRecorder()
 
-	// Known bug C1: FaviconHandler does not return after renderError,
-	// causing a nil pointer panic in io.Copy(w, nil).
-	defer func() {
-		if r := recover(); r != nil {
-			t.Logf("Known bug C1 reproduced: FaviconHandler panics on missing file: %v", r)
-		}
-	}()
 	h.FaviconHandler(w, req)
-	t.Error("Expected panic due to known bug C1, but handler returned normally")
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected 404 for missing favicon, got %d", resp.StatusCode)
+	}
 }
 
 // ----------------
@@ -475,15 +473,13 @@ func TestRobotsHandler_Missing(t *testing.T) {
 	req.RemoteAddr = "1.2.3.4:5678"
 	w := httptest.NewRecorder()
 
-	// Known bug C1: RobotsHandler does not return after renderError,
-	// causing a nil pointer panic in io.Copy(w, nil).
-	defer func() {
-		if r := recover(); r != nil {
-			t.Logf("Known bug C1 reproduced: RobotsHandler panics on missing file: %v", r)
-		}
-	}()
 	h.RobotsHandler(w, req)
-	t.Error("Expected panic due to known bug C1, but handler returned normally")
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected 404 for missing robots.txt, got %d", resp.StatusCode)
+	}
 }
 
 // ----------------
