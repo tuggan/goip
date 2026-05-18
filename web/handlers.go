@@ -259,6 +259,13 @@ func (h handler) renderError(w http.ResponseWriter, r *http.Request, tmpl string
 		Code:    strconv.Itoa(code),
 	}
 	t, err := template.ParseFiles(safeTmpl + ".html")
+	if err != nil {
+		logger.Error("Failed to parse error template %s: %v", tmpl, err)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(code)
+		fmt.Fprintf(w, "<h1>%d: %s</h1><p>%s</p>", code, http.StatusText(code), html.EscapeString(s))
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if h.gzipEnabled && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		w.Header().Set("Content-Encoding", "gzip")
