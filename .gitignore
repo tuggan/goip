@@ -4,3 +4,5 @@ goip.toml
 *.exe
 *.log
 build/
+*.crt
+*.key
