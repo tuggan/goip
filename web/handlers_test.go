@@ -674,6 +674,46 @@ func TestMainHandler_MissingRemoteAddr(t *testing.T) {
 }
 
 // ----------------
+// HealthHandler
+// ----------------
+
+func TestHealthHandler(t *testing.T) {
+	h := testHandler()
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+
+	h.HealthHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200, got %d", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); ct != "text/plain; charset=utf-8" {
+		t.Errorf("expected Content-Type text/plain; charset=utf-8, got %q", ct)
+	}
+	body := mustReadBody(t, resp.Body)
+	if body != "OK\n" {
+		t.Errorf("expected body %q, got %q", "OK\n", body)
+	}
+}
+
+func TestHealthHandler_AnyMethod(t *testing.T) {
+	h := testHandler()
+	// POST should also work (health checks don't restrict methods)
+	req := httptest.NewRequest(http.MethodPost, "/health", nil)
+	w := httptest.NewRecorder()
+
+	h.HealthHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 for POST, got %d", resp.StatusCode)
+	}
+}
+
+// ----------------
 // NewHandler defaults
 // ----------------
 

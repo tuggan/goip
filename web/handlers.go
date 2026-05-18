@@ -323,3 +323,10 @@ func (h handler) RobotsHandler(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, file)
 	logger.Access(r, http.StatusOK)
 }
+
+func (h handler) HealthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, "OK\n")
+	logger.Access(r, http.StatusOK)
+}

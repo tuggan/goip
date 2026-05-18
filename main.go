@@ -180,6 +180,7 @@ func main() {
 	handler.HandleFunc("/GET", h.GETHandler)
 	handler.HandleFunc("/favicon.ico", h.FaviconHandler)
 	handler.HandleFunc("/robots.txt", h.RobotsHandler)
+	handler.HandleFunc("/health", h.HealthHandler)
 
 	// Wrap the mux with rate limiting, panic recovery, and security headers.
 	wrappedHandler := recoveryMiddleware(rateLimiter.Middleware(securityHeadersMiddleware(handler)))
