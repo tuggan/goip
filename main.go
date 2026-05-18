@@ -52,6 +52,21 @@ func serve(wg *sync.WaitGroup, srv *http.Server, l net.Listener, certFile, keyFi
 	logger.Info("Shutting down serve routine")
 }
 
+// recoveryMiddleware wraps an http.Handler with panic recovery.
+// If a handler panics, it logs the error and returns a 500 response
+// instead of crashing the server process.
+func recoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				logger.Error("Panic recovered: %v", rec)
+				http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	pflag.StringP("endpoint", "e", "127.0.0.1:3000", "Endpoint to listen on")
@@ -131,11 +146,14 @@ func main() {
 	handler.HandleFunc("/favicon.ico", h.FaviconHandler)
 	handler.HandleFunc("/robots.txt", h.RobotsHandler)
 
+	// Wrap the mux with panic recovery middleware.
+	wrappedHandler := recoveryMiddleware(handler)
+
 	// Separate server instances for TLS and plain HTTP.
 	// Go's http.Server docs state Serve/ServeTLS must not be called
 	// concurrently on the same server.
 	var plainSrv http.Server
-	plainSrv.Handler = handler
+	plainSrv.Handler = wrappedHandler
 	plainSrv.ReadTimeout = 10 * time.Second
 	plainSrv.ReadHeaderTimeout = 5 * time.Second
 	plainSrv.WriteTimeout = 10 * time.Second
@@ -143,7 +161,7 @@ func main() {
 	plainSrv.MaxHeaderBytes = 1 << 20 // 1 MB
 
 	var tlsSrv http.Server
-	tlsSrv.Handler = handler
+	tlsSrv.Handler = wrappedHandler
 	tlsSrv.ReadTimeout = 10 * time.Second
 	tlsSrv.ReadHeaderTimeout = 5 * time.Second
 	tlsSrv.WriteTimeout = 10 * time.Second
