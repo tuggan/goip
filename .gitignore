@@ -6,3 +6,5 @@ goip.toml
 build/
 *.crt
 *.key
+*.bak
+coverage.out
