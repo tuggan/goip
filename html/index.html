@@ -61,13 +61,18 @@
         #ip {
             background: #03A9F4;
             color: #212121;
-            line-height: 12rem;
-            height: 12rem;
+            min-height: 12rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-            font-size: 4rem;
-            font-size: 9vw;
+            font-size: clamp(2rem, 8vw, 7rem);
             font-weight: bold;
             width: 100%;
+            padding: 1rem;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
         #content {
