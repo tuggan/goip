@@ -125,6 +125,12 @@ func main() {
 
 	var srv http.Server
 
+	srv.ReadTimeout = 10 * time.Second
+	srv.ReadHeaderTimeout = 5 * time.Second
+	srv.WriteTimeout = 10 * time.Second
+	srv.IdleTimeout = 60 * time.Second
+	srv.MaxHeaderBytes = 1 << 20 // 1 MB
+
 	handler := http.NewServeMux()
 
 	h := web.NewHandler(egzip, t, Version, Branch, Date, author, email)
