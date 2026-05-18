@@ -73,6 +73,7 @@ func main() {
 	pflag.String("tlsEndpoint", "127.0.0.1:3000", "Endpoint to listen on")
 	pflag.String("tlsCert", "", "Path to TLS Certificate file")
 	pflag.String("tlsKey", "", "Path to TLS Key file")
+	pflag.StringSlice("trustedProxy", nil, "Trusted proxy IP or CIDR (repeatable, e.g. --trustedProxy 10.0.0.0/8)")
 
 	versionFlag := pflag.BoolP("version", "v", false, "Print version and exit")
 	help := pflag.BoolP("help", "h", false, "Print help and exit")
@@ -138,9 +139,11 @@ func main() {
 		tlsKey = viper.GetString("tlsKey")
 	}
 
+	trustedProxies := viper.GetStringSlice("trustedProxy")
+
 	handler := http.NewServeMux()
 
-	h := web.NewHandler(egzip, t, Version, Branch, Date, author, email)
+	h := web.NewHandler(egzip, t, Version, Branch, Date, author, email, trustedProxies)
 	handler.HandleFunc("/", h.MainHandler)
 	handler.HandleFunc("/GET", h.GETHandler)
 	handler.HandleFunc("/favicon.ico", h.FaviconHandler)

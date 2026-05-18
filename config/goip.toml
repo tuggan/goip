@@ -22,3 +22,13 @@ tlsCert = "cert.crt"
 
 # Private key file
 tlsKey = "private.key"
+
+
+# Trusted proxies
+# List of IP addresses or CIDR ranges that are allowed to set the
+# X-Forwarded-For header. When a request comes from a trusted proxy,
+# the X-Forwarded-For value is used as the client IP instead of the
+# direct connection address. This prevents IP spoofing by direct clients.
+# Examples:
+#   trustedProxies = ["127.0.0.1", "10.0.0.0/8", "192.168.0.0/16"]
+trustedProxies = []

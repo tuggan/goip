@@ -22,12 +22,12 @@ func TestMain(m *testing.M) {
 
 func testHandler() handler {
 	return NewHandler(false, "../html", "test-version", "test-branch",
-		"2024-01-01", "Test Author", "test@example.com")
+		"2024-01-01", "Test Author", "test@example.com", nil)
 }
 
 func testHandlerWithGzip() handler {
 	return NewHandler(true, "../html", "test-version", "test-branch",
-		"2024-01-01", "Test Author", "test@example.com")
+		"2024-01-01", "Test Author", "test@example.com", nil)
 }
 
 func mustReadBody(t *testing.T, r io.Reader) string {
@@ -210,9 +210,10 @@ func TestMainHandler_NotFound(t *testing.T) {
 // X-Forwarded-For
 // ----------------
 
-func TestMainHandler_XForwardedFor(t *testing.T) {
+func TestMainHandler_XForwardedFor_Untrusted(t *testing.T) {
+	// No trusted proxies configured — X-Forwarded-For must be ignored.
 	h := testHandler()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ip", nil)
 	req.RemoteAddr = "10.0.0.1:4444"
 	req.Header.Set("X-Forwarded-For", "203.0.113.5")
 	w := httptest.NewRecorder()
@@ -221,12 +222,63 @@ func TestMainHandler_XForwardedFor(t *testing.T) {
 	resp := w.Result()
 	defer resp.Body.Close()
 
-	body := mustReadBody(t, resp.Body)
-	if !strings.Contains(body, "203.0.113.5") {
-		t.Errorf("expected body to contain X-Forwarded-For IP, got:\n%s", body)
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "10.0.0.1" {
+		t.Errorf("expected RemoteAddr IP (X-Forwarded-For ignored), got %q", body)
 	}
-	if strings.Contains(body, "10.0.0.1") {
-		t.Errorf("body should NOT contain original RemoteAddr when X-Forwarded-For is set, got:\n%s", body)
+}
+
+func TestMainHandler_XForwardedFor_TrustedExactIP(t *testing.T) {
+	// Trusted proxy with exact IP match.
+	h := NewHandler(false, "../html", "v", "b", "d", "a", "e", []string{"10.0.0.1"})
+	req := httptest.NewRequest(http.MethodGet, "/ip", nil)
+	req.RemoteAddr = "10.0.0.1:4444"
+	req.Header.Set("X-Forwarded-For", "203.0.113.5")
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "203.0.113.5" {
+		t.Errorf("expected X-Forwarded-For IP '203.0.113.5', got %q", body)
+	}
+}
+
+func TestMainHandler_XForwardedFor_TrustedCIDR(t *testing.T) {
+	// Trusted proxy from a CIDR range.
+	h := NewHandler(false, "../html", "v", "b", "d", "a", "e", []string{"10.0.0.0/8"})
+	req := httptest.NewRequest(http.MethodGet, "/ip", nil)
+	req.RemoteAddr = "10.0.0.1:4444"
+	req.Header.Set("X-Forwarded-For", "203.0.113.5")
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "203.0.113.5" {
+		t.Errorf("expected X-Forwarded-For IP '203.0.113.5', got %q", body)
+	}
+}
+
+func TestMainHandler_XForwardedFor_TrustedNotMatching(t *testing.T) {
+	// Trusted proxy configured, but request is from a different IP.
+	h := NewHandler(false, "../html", "v", "b", "d", "a", "e", []string{"10.0.0.0/8"})
+	req := httptest.NewRequest(http.MethodGet, "/ip", nil)
+	req.RemoteAddr = "192.168.1.1:4444"
+	req.Header.Set("X-Forwarded-For", "203.0.113.5")
+	w := httptest.NewRecorder()
+
+	h.MainHandler(w, req)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	body := strings.TrimSpace(mustReadBody(t, resp.Body))
+	if body != "192.168.1.1" {
+		t.Errorf("expected RemoteAddr IP (not in trusted range), got %q", body)
 	}
 }
 
@@ -430,7 +482,7 @@ func TestFaviconHandler_Success(t *testing.T) {
 }
 
 func TestFaviconHandler_Missing(t *testing.T) {
-	h := NewHandler(false, t.TempDir(), "v", "b", "d", "a", "e")
+	h := NewHandler(false, t.TempDir(), "v", "b", "d", "a", "e", nil)
 	req := httptest.NewRequest(http.MethodGet, "/favicon.ico", nil)
 	req.RemoteAddr = "1.2.3.4:5678"
 	w := httptest.NewRecorder()
@@ -468,7 +520,7 @@ func TestRobotsHandler_Success(t *testing.T) {
 }
 
 func TestRobotsHandler_Missing(t *testing.T) {
-	h := NewHandler(false, t.TempDir(), "v", "b", "d", "a", "e")
+	h := NewHandler(false, t.TempDir(), "v", "b", "d", "a", "e", nil)
 	req := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
 	req.RemoteAddr = "1.2.3.4:5678"
 	w := httptest.NewRecorder()
@@ -507,7 +559,7 @@ func TestMainHandler_MissingRemoteAddr(t *testing.T) {
 // ----------------
 
 func TestNewHandler_SetsServerField(t *testing.T) {
-	h := NewHandler(false, "/templates", "1.0.0", "main", "2024-06-15", "Alice", "alice@example.com")
+	h := NewHandler(false, "/templates", "1.0.0", "main", "2024-06-15", "Alice", "alice@example.com", nil)
 	expected := fmt.Sprintf("GoIP %s", "1.0.0")
 	if h.server != expected {
 		t.Errorf("expected server %q, got %q", expected, h.server)

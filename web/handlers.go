@@ -35,18 +35,19 @@ type page struct {
 }
 
 type handler struct {
-	gzipEnabled bool
-	templateDir string
-	version     string
-	branch      string
-	date        string
-	author      string
-	email       string
-	server      string
+	gzipEnabled   bool
+	templateDir   string
+	version       string
+	branch        string
+	date          string
+	author        string
+	email         string
+	server        string
+	trustedIPNets []*net.IPNet
 }
 
-func NewHandler(gzipEnabled bool, templateDir, version, branch, date, author, email string) handler {
-	return handler{
+func NewHandler(gzipEnabled bool, templateDir, version, branch, date, author, email string, trustedProxies []string) handler {
+	h := handler{
 		gzipEnabled: gzipEnabled,
 		templateDir: templateDir,
 		version:     version,
@@ -56,6 +57,55 @@ func NewHandler(gzipEnabled bool, templateDir, version, branch, date, author, em
 		email:       email,
 		server:      fmt.Sprintf("GoIP %s", version),
 	}
+
+	for _, p := range trustedProxies {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		// Try as CIDR notation first (e.g. "10.0.0.0/8", "192.168.1.0/24")
+		_, cidr, err := net.ParseCIDR(p)
+		if err == nil {
+			h.trustedIPNets = append(h.trustedIPNets, cidr)
+			continue
+		}
+		// Try as a plain IP, convert to /32 or /128
+		ip := net.ParseIP(p)
+		if ip != nil {
+			if ip.To4() != nil {
+				_, cidr, _ = net.ParseCIDR(ip.String() + "/32")
+			} else {
+				_, cidr, _ = net.ParseCIDR(ip.String() + "/128")
+			}
+			h.trustedIPNets = append(h.trustedIPNets, cidr)
+			continue
+		}
+		logger.Warning("Ignoring invalid trusted proxy entry: %q", p)
+	}
+
+	return h
+}
+
+// isTrustedProxy checks whether the remote address (host:port) matches
+// any of the configured trusted proxy IPs or CIDR ranges.
+func (h handler) isTrustedProxy(remoteAddr string) bool {
+	if len(h.trustedIPNets) == 0 {
+		return false
+	}
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return false
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	for _, cidr := range h.trustedIPNets {
+		if cidr.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +117,10 @@ func (h handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("X-Forwarded-For") != "" {
+	// Only trust X-Forwarded-For when the connection comes from a
+	// configured trusted proxy. This prevents direct clients from
+	// spoofing their IP address via the header.
+	if r.Header.Get("X-Forwarded-For") != "" && h.isTrustedProxy(r.RemoteAddr) {
 		ip = r.Header.Get("X-Forwarded-For")
 	}
 
