@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -96,6 +97,9 @@ func main() {
 	help := pflag.BoolP("help", "h", false, "Print help and exit")
 	configFile := pflag.StringP("config", "c", ".", "Path to config file")
 
+	pflag.Float64("rateLimit", 0, "Maximum requests per second per IP (0 = disabled)")
+	pflag.Int("rateLimitBurst", 0, "Maximum burst size (defaults to rateLimit if not set)")
+
 	pflag.Parse()
 
 	viper.BindPFlags(pflag.CommandLine)
@@ -158,16 +162,27 @@ func main() {
 
 	trustedProxies := viper.GetStringSlice("trustedProxy")
 
+	rateLimit := viper.GetFloat64("rateLimit")
+	rateLimitBurst := viper.GetInt("rateLimitBurst")
+	if rateLimitBurst <= 0 {
+		rateLimitBurst = int(math.Ceil(rateLimit))
+		if rateLimitBurst < 1 {
+			rateLimitBurst = 1
+		}
+	}
+
 	handler := http.NewServeMux()
 
 	h := web.NewHandler(egzip, t, Version, Branch, Date, author, email, trustedProxies)
+	rateLimiter := web.NewRateLimiter(rateLimit, rateLimitBurst, 10*time.Minute)
+	defer rateLimiter.Stop()
 	handler.HandleFunc("/", h.MainHandler)
 	handler.HandleFunc("/GET", h.GETHandler)
 	handler.HandleFunc("/favicon.ico", h.FaviconHandler)
 	handler.HandleFunc("/robots.txt", h.RobotsHandler)
 
-	// Wrap the mux with panic recovery middleware.
-	wrappedHandler := recoveryMiddleware(securityHeadersMiddleware(handler))
+	// Wrap the mux with rate limiting, panic recovery, and security headers.
+	wrappedHandler := recoveryMiddleware(rateLimiter.Middleware(securityHeadersMiddleware(handler)))
 
 	// Separate server instances for TLS and plain HTTP.
 	// Go's http.Server docs state Serve/ServeTLS must not be called

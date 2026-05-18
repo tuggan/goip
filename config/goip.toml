@@ -32,3 +32,9 @@ tlsKey = "private.key"
 # Examples:
 #   trustedProxies = ["127.0.0.1", "10.0.0.0/8", "192.168.0.0/16"]
 trustedProxies = []
+
+# Rate limiting
+# Maximum requests per second per client IP. Set to 0 to disable.
+rateLimit = 10
+# Maximum burst size (optional, defaults to rateLimit rounded up if not set)
+# rateLimitBurst = 20
